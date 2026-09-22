@@ -37,48 +37,36 @@ ibus restart
 # RIME 基本设置
 patch:
   schema_list:
-    - schema: rime_ice
-
-  # 候选词个数
-  menu/page_size: 10
-
-  # 启用右 Shift 键
-  ascii_composer/switch_key/Shift_R: commit_code
+    - schema: rime_ice        # 方案列表只留雾松拼音
+  menu/page_size: 10          # 候选词个数
+  ascii_composer/switch_key/Shift_R: commit_code  # 启用右 Shift 键切换中英文模式
 ```
 
 `ibus_rime.custom.yaml`（ibus-rime 外观配置）：
 ```yaml
 # IBUS-RIME 外观设置
 patch:
-  # 候选窗横排
-  style/horizontal: true
-
-  # 拼音跟着光标显示在输入框内
-  style/inline_preedit: true
-
-  # 候选窗不显示拼音行
-  style/preedit_style: composition
-
-  # 光标跟随实际编辑位置
-  style/cursor_type: insert
+  style/horizontal: true         # 候选窗横排
+  style/inline_preedit: true     # 拼音跟着光标显示在输入框内
+  style/cursor_type: insert      # 光标跟随实际编辑位置
+  style/preedit_style: composition  # 候选窗不显示拼音行
 ```
 
 `rime_ice.custom.yaml`（雾凇拼音配置）：
 ```yaml
 # 雾松拼音设置
 patch:
-  # 模糊音规则
-  speller/algebra/+:
-    # 平翘舌
-    - derive/^([zcs])([^h])/$1h$2/  # z c s → zh ch sh
-    # 前后鼻音
-    - derive/eng$/en/  # eng → en
-    - derive/en$/eng/  # en → eng
-    - derive/in$/ing/  # in → ing
-    - derive/ing$/in/  # ing → in
+  schema/name: 中·雾松拼音     # 为了让指示栏显示"中"字
+  switches/@1/reset: 1       # 中文模式下也使用英文标点
+  speller/algebra/+:         # 添加模糊音规则
+    - derive/^([zcs])([^h])/$1h$2/    # z c s → zh ch sh
+    - derive/en$/eng/                 # en → eng
+    - derive/eng$/en/                 # eng → en
+    - derive/in$/ing/                 # in → ing
+    - derive/ing$/in/                 # ing → in
 ```
 
-配置文件修改后，需要手动部署生效：
+## 配置生效
 
 ibus-rime 没有独立的部署命令，靠重启引擎触发重新部署：
 ```bash
