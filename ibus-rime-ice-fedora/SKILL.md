@@ -40,6 +40,12 @@ patch:
     - schema: rime_ice        # 方案列表只留雾松拼音
   menu/page_size: 10          # 候选词个数
   ascii_composer/switch_key/Shift_R: commit_code  # 启用右 Shift 键切换中英文模式
+
+  # 不使用左右方向键切换候选词（仅用于在输入框内移动光标）
+  selector/linear/bindings/Left: noop
+  selector/linear/bindings/Right: noop
+  selector/vertical/linear/bindings/Left: noop
+  selector/vertical/linear/bindings/Right: noop
 ```
 
 `ibus_rime.custom.yaml`（ibus-rime 外观配置）：
