@@ -1,5 +1,5 @@
 ---
-name: teach
+name: teach-by-alexknowshtml
 description: Use when the user wants to be quizzed on or taught what happened in a session ("/teach", "teach me", "quiz me on", "help me understand what we just did"). Socratic teaching loop over a session or file — confirm mastery item by item with a tracked checklist, don't finish until everything is locked in. Also supports teaching mode to help the user teach someone else.
 ---
 
