@@ -66,10 +66,11 @@ patch:
   switches/@1/reset: 1       # 中文模式下也使用英文标点
   speller/algebra/+:         # 添加模糊音规则
     - derive/^([zcs])([^h])/$1h$2/    # z c s → zh ch sh
-    - derive/en$/eng/                 # en → eng
-    - derive/eng$/en/                 # eng → en
-    - derive/in$/ing/                 # in → ing
-    - derive/ing$/in/                 # ing → in
+    - derive/en$/eng/                 # eng → en
+    - derive/eng$/en/                 # en → eng
+    - derive/in$/ing/                 # ing → in
+    - derive/ing$/in/                 # in → ing
+    - derive/v$/u/                    # u → v
 ```
 
 ## 配置生效
