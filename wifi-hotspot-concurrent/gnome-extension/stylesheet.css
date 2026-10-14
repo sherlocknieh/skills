@@ -1,0 +1,20 @@
+.wifi-hotspot-content {
+    spacing: 8px;
+    padding: 2px 0;
+}
+
+.wifi-hotspot-row {
+    spacing: 8px;
+}
+
+.wifi-hotspot-label {
+    min-width: 3.5em;
+}
+
+.wifi-hotspot-entry {
+    min-width: 150px;
+}
+
+.wifi-hotspot-apply {
+    margin-top: 2px;
+}
