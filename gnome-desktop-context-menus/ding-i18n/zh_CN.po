@@ -1,0 +1,524 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: desktop-icons v99\n"
+"PO-Revision-Date: 2026-10-11 00:00+0800\n"
+"Last-Translator: opencode\n"
+"Language-Team: zh_CN\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "Rename folder"
+msgstr "重命名文件夹"
+
+msgid "Rename file"
+msgstr "重命名文件"
+
+msgid "New filename"
+msgstr "新文件名"
+
+msgid "OK"
+msgstr "确定"
+
+msgid "Rename"
+msgstr "重命名"
+
+msgid "AutoAr is not installed"
+msgstr "AutoAr 未安装"
+
+msgid "To be able to work with compressed files, install file-roller and/or gir-1.2-gnomeAutoAr"
+msgstr "要能够处理压缩文件，请安装 file-roller 和/或 gir-1.2-gnomeAutoAr"
+
+msgid "Extracting files"
+msgstr "正在提取文件"
+
+msgid "Compressing files"
+msgstr "正在压缩文件"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Enter a password here"
+msgstr "请在此输入密码"
+
+msgid "Removing partial file '{outputFile}'"
+msgstr "正在删除部分文件 '{outputFile}'"
+
+msgid "Creating destination folder"
+msgstr "正在创建目标文件夹"
+
+msgid "Extracting files into '{outputPath}'"
+msgstr "正在将文件提取到 '{outputPath}'"
+
+msgid "Extraction completed"
+msgstr "提取完成"
+
+msgid "Extracting '{fullPathFile}' has been completed."
+msgstr "提取 '{fullPathFile}' 已完成。"
+
+msgid "Extraction cancelled"
+msgstr "提取已取消"
+
+msgid "Extracting '{fullPathFile}' has been cancelled by the user."
+msgstr "提取 '{fullPathFile}' 已被用户取消。"
+
+msgid "Passphrase required for {filename}"
+msgstr "需要 {filename} 的密码"
+
+msgid "Error during extraction"
+msgstr "提取过程中出错"
+
+msgid "Compressing files into '{outputFile}'"
+msgstr "正在将文件压缩到 '{outputFile}'"
+
+msgid "Compression completed"
+msgstr "压缩完成"
+
+msgid "Compressing files into '{outputFile}' has been completed."
+msgstr "压缩文件到 '{outputFile}' 已完成。"
+
+msgid "Cancelled compression"
+msgstr "压缩已取消"
+
+msgid "The output file '{outputFile}' already exists."
+msgstr "输出文件 '{outputFile}' 已存在。"
+
+msgid "Compressing files into '{outputFile}' has been cancelled by the user."
+msgstr "压缩文件到 '{outputFile}' 已被用户取消。"
+
+msgid "Error during compression"
+msgstr "压缩过程中出错"
+
+msgid "Create archive"
+msgstr "创建存档"
+
+msgid "Archive name"
+msgstr "存档名称"
+
+msgid "Password"
+msgstr "密码"
+
+msgid "Compatible with all operating systems."
+msgstr "兼容所有操作系统。"
+
+msgid "Password protected .zip, must be installed on Windows and Mac."
+msgstr "密码保护的 .zip 文件，必须在 Windows 和 Mac 上安装。"
+
+msgid "Smaller archives but Linux and Mac only."
+msgstr "存档文件更小，但仅限 Linux 和 Mac。"
+
+msgid "Smaller archives but must be installed on Windows and Mac."
+msgstr "存档文件更小，但必须在 Windows 和 Mac 上安装。"
+
+msgid "\"{programName}\" is needed for Desktop Icons"
+msgstr "Desktop Icons 需要 “{programName}”"
+
+msgid "For this functionality to work in Desktop Icons, you must install \"{programName}\" in your system."
+msgstr "为使此功能在 Desktop Icons 中运行，您必须在系统中安装“{programName}”。"
+
+msgid "Command not found"
+msgstr "无法找到命令"
+
+msgid "Nautilus File Manager not found"
+msgstr "找不到 Nautilus 文件管理器"
+
+msgid "The Nautilus File Manager is mandatory to work with Desktop Icons NG."
+msgstr "Desktop Icons NG 依赖 Nautilus 文件管理器才能运行。"
+
+msgid "Clear Current Selection before New Search"
+msgstr "在进行新的搜索之前清除当前选择"
+
+msgid "Find Files on Desktop"
+msgstr "在桌面上寻找文件"
+
+msgid "New Folder"
+msgstr "新建文件夹"
+
+msgid "Folder Creation Failed"
+msgstr "文件夹创建失败"
+
+msgid "Error while trying to create a Folder"
+msgstr "创建文件夹时出错"
+
+msgid "Template Creation Failed"
+msgstr "模板创建失败"
+
+msgid "Error while trying to create a Document"
+msgstr "创建文档时出错"
+
+msgid "Keep Arranged..."
+msgstr "保持排列…"
+
+msgid "Keep Stacked by type..."
+msgstr "按类型保持堆叠…"
+
+msgid "Sort Home/Drives/Trash..."
+msgstr "排序主目录/驱动器/回收站…"
+
+msgid "Sort by Name"
+msgstr "按名称排序"
+
+msgid "Sort by Name Descending"
+msgstr "按名称降序排序"
+
+msgid "Sort by Modified Time"
+msgstr "按修改时间排序"
+
+msgid "Sort by Type"
+msgstr "按类型排序"
+
+msgid "Sort by Size"
+msgstr "按大小排序"
+
+msgid "New Document"
+msgstr "新建文档"
+
+msgid "Paste"
+msgstr "粘贴"
+
+msgid "Undo"
+msgstr "撤销"
+
+msgid "Redo"
+msgstr "重做"
+
+msgid "Select All"
+msgstr "全选"
+
+msgid "Arrange Icons"
+msgstr "排列图标"
+
+msgid "Arrange By..."
+msgstr "排序方式…"
+
+msgid "Show Desktop in Files"
+msgstr "在文件管理器中显示桌面"
+
+msgid "Open in Terminal"
+msgstr "在终端中打开"
+
+msgid "Change Background…"
+msgstr "更改壁纸…"
+
+msgid "Desktop Icons Settings"
+msgstr "桌面图标设置"
+
+msgid "Display Settings"
+msgstr "显示设置"
+
+msgid "Home"
+msgstr "主目录"
+
+msgid "Trash"
+msgstr "回收站"
+
+msgid "{VisibleName} Drive"
+msgstr "{VisibleName} 驱动器"
+
+msgid "{VisibleName} Drive Selected"
+msgstr "{VisibleName} 驱动器"
+
+msgid "{VisibleName} Folder"
+msgstr "{VisibleName} 文件夹"
+
+msgid "{VisibleName} Folder Selected"
+msgstr "{VisibleName} 文件夹"
+
+msgid "{VisibleName} Application"
+msgstr "{VisibleName} 文件"
+
+msgid "{VisibleName} Application Selected"
+msgstr "{VisibleName} 文件"
+
+msgid "{VisibleName} File"
+msgstr "{VisibleName} 文件"
+
+msgid "{VisibleName} File Selected"
+msgstr "{VisibleName} 文件"
+
+msgid "Error while reading Desktop file"
+msgstr "读取 .desktop 文件时发生错误"
+
+msgid "Broken Link"
+msgstr "损坏的链接"
+
+msgid "Can not open this File because it is a Broken Symlink"
+msgstr "无法打开此文件，因为它是一个损坏的符号链接"
+
+msgid "Can't open the file"
+msgstr "无法打开文件"
+
+msgid "Invalid Permissions on AppImage File"
+msgstr "桌面文件权限无效"
+
+msgid "This .appimage File has incorrect Permissions. Right Click to edit Properties, then:\n"
+msgstr "此 .desktop 文件的权限不正确。请按右键以编辑属性，然后：\n"
+
+msgid "\n<b>Set Permissions, in \"Others Access\", \"Read Only\" or \"None\"</b>"
+msgstr "\n<b>设置权限，在“其他访问权限”中，设为“只读”或“无”</b>"
+
+msgid "\n<b>Enable option, \"Allow Executing File as a Program\"</b>"
+msgstr "\n<b>勾选“允许作为程序执行文件”选项</b>"
+
+msgid "This .appimage file is not trusted, it can not be launched. To enable launching, right-click, then:\n\n<b>Enable \"Allow Launching\"</b>"
+msgstr "此 .desktop 文件未被信任，无法启动。要允许启动，请右键单击，然后：\n\n<b>启用“允许启动”</b>"
+
+msgid "Broken Desktop File"
+msgstr "损坏的 .desktop 文件"
+
+msgid "This .desktop file has errors or points to a program without permissions. It can not be executed.\n\n\t<b>Edit the file to set the correct executable Program.</b>"
+msgstr "此 .desktop 文件有错误或指向一个无权执行的程序。它无法被执行。\n\n\t<b>编辑文件以设置正确的可执行程序。</b>"
+
+msgid "Invalid Permissions on Desktop File"
+msgstr "桌面文件权限无效"
+
+msgid "This .desktop File has incorrect Permissions. Right Click to edit Properties, then:\n"
+msgstr "此 .desktop 文件的权限不正确。请按右键以编辑属性，然后：\n"
+
+msgid "This .desktop file is not trusted, it can not be launched. To enable launching, right-click, then:\n\n<b>Enable \"Allow Launching\"</b>"
+msgstr "此 .desktop 文件未被信任，无法启动。要允许启动，请右键单击，然后：\n\n<b>启用“允许启动”</b>"
+
+msgid "Failed to set execution flag"
+msgstr "设置执行标志失败"
+
+msgid "Could not apply discrete GPU environment"
+msgstr "无法应用独立 GPU 环境"
+
+msgid "Could not find discrete GPU data"
+msgstr "找不到独立 GPU 数据"
+
+msgid "Failed to set metadata::trusted flag"
+msgstr "设置 metadata::trusted 标志失败"
+
+msgid "Open All..."
+msgstr "全部打开..."
+
+msgid "Open"
+msgstr "打开"
+
+msgid "Stack This Type"
+msgstr "堆叠此类型"
+
+msgid "Unstack This Type"
+msgstr "取消堆叠此类型"
+
+msgid "Open All With Other Application..."
+msgstr "使用其他应用全部打开..."
+
+msgid "Open With Other Application"
+msgstr "使用其他应用打开"
+
+msgid "Launch using Dedicated Graphics Card"
+msgstr "使用独立显卡启动"
+
+msgid "Run as a program"
+msgstr "作为程序运行"
+
+msgid "Cut"
+msgstr "剪切"
+
+msgid "Copy"
+msgstr "复制"
+
+msgid "Rename…"
+msgstr "重命名…"
+
+msgid "Move to Trash"
+msgstr "放入回收站"
+
+msgid "Delete permanently"
+msgstr "永久删除"
+
+msgid "Don't Allow Launching"
+msgstr "不允许运行"
+
+msgid "Allow Launching"
+msgstr "允许运行"
+
+msgid "Don't use sandboxing"
+msgstr "不使用沙箱"
+
+msgid "Use sandboxing if available"
+msgstr "使用沙箱（如果可用）"
+
+msgid "Empty Trash"
+msgstr "清空回收站"
+
+msgid "Eject"
+msgstr "弹出"
+
+msgid "Unmount"
+msgstr "卸载"
+
+msgid "Extract Here"
+msgstr "提取到此处"
+
+msgid "Extract To..."
+msgstr "提取到…"
+
+msgid "Send to..."
+msgstr "发送到…"
+
+msgid "Compress {0} folder"
+msgid_plural "Compress {0} folders"
+msgstr[0] "压缩 {0} 个文件夹"
+
+msgid "Compress {0} file"
+msgid_plural "Compress {0} files"
+msgstr[0] "压缩 {0} 个文件"
+
+msgid "New Folder with {0} item"
+msgid_plural "New Folder with {0} items"
+msgstr[0] "包含 {0} 个项目的新文件夹"
+
+msgid "Common Properties"
+msgstr "通用属性"
+
+msgid "Properties"
+msgstr "属性"
+
+msgid "Show All in Files"
+msgstr "在文件管理器中全部显示"
+
+msgid "Show in Files"
+msgstr "在文件管理器中显示"
+
+msgid "No Extraction Folder"
+msgstr "没有提取文件夹"
+
+msgid "Unable to extract File, extraction Folder Does not Exist"
+msgstr "无法提取文件，提取文件夹不存在"
+
+msgid "Select Extract Destination"
+msgstr "选择提取目录"
+
+msgid "Select"
+msgstr "选择"
+
+msgid "Can not email a Directory"
+msgstr "无法通过邮件发送文件夹"
+
+msgid "Selection includes a Directory, compress the directory to a file first."
+msgstr "选择包括目录，首先将目录压缩到文件中。"
+
+msgid "Desktop Icons NG is running under X11Wayland"
+msgstr "Desktop Icons NG 正在 X11Wayland 下运行"
+
+msgid "It seems that you have your system configured to force GTK to use X11. This works, but it's suboptimal. You should check your system configuration to fix this."
+msgstr "您的系统似乎被配置为强制 GTK 使用 X11。这样可以工作，但并非最佳选择。您应该检查您的系统配置来修复此问题。"
+
+msgid "Close"
+msgstr "关闭"
+
+msgid "Don't show this message anymore."
+msgstr "不再显示此消息。"
+
+msgid "Settings"
+msgstr "设置"
+
+msgid "Size for the desktop icons"
+msgstr "桌面图标大小"
+
+msgid "Tiny"
+msgstr "超小"
+
+msgid "Small"
+msgstr "小"
+
+msgid "Standard"
+msgstr "标准"
+
+msgid "Large"
+msgstr "大"
+
+msgid "Show the personal folder in the desktop"
+msgstr "在桌面显示主目录"
+
+msgid "Show the trash icon in the desktop"
+msgstr "在桌面显示回收站图标"
+
+msgid "Show external drives in the desktop"
+msgstr "在桌面显示外部驱动器"
+
+msgid "Show network drives in the desktop"
+msgstr "在桌面显示网络驱动器"
+
+msgid "New icons alignment"
+msgstr "新图标对齐方式"
+
+msgid "Top-left corner"
+msgstr "左上角"
+
+msgid "Top-right corner"
+msgstr "右上角"
+
+msgid "Bottom-left corner"
+msgstr "左下角"
+
+msgid "Bottom-right corner"
+msgstr "右下角"
+
+msgid "Add new drives to the opposite side of the screen"
+msgstr "将新驱动器添加到屏幕另一侧"
+
+msgid "Highlight the drop place during Drag'n'Drop"
+msgstr "拖放时高亮显示放置区域"
+
+msgid "Use Nemo to open folders"
+msgstr "使用 Nemo 打开文件夹"
+
+msgid "Add an emblem to soft links"
+msgstr "为软链接添加标志"
+
+msgid "Use dark text in icon labels"
+msgstr "图标标签使用深色文本"
+
+msgid "Settings shared with Nautilus"
+msgstr "与 Nautilus 共享的设置"
+
+msgid "Click type for open files"
+msgstr "打开文件的点击方式"
+
+msgid "Single click"
+msgstr "单击"
+
+msgid "Double click"
+msgstr "双击"
+
+msgid "Show hidden files"
+msgstr "显示隐藏文件"
+
+msgid "Show a context menu item to delete permanently"
+msgstr "显示“永久删除”的上下文菜单项"
+
+msgid "Action to do when launching a program from the desktop"
+msgstr "从桌面启动程序时要执行的操作"
+
+msgid "Display the content of the file"
+msgstr "显示文件内容"
+
+msgid "Launch the file"
+msgstr "运行文件"
+
+msgid "Ask what to do"
+msgstr "总是询问"
+
+msgid "Show image thumbnails"
+msgstr "显示图片缩略图"
+
+msgid "Never"
+msgstr "从不"
+
+msgid "Local files only"
+msgstr "仅限本地文件"
+
+msgid "Always"
+msgstr "始终"
+
+msgid "GnomeDesktop-4.0 GIR file not found"
+msgstr "找不到 GnomeDesktop-4.0 GIR 文件"
+
+msgid "GnomeDesktop-4.0.gir file is missing. Please, install the required package in your system."
+msgstr "缺少 GnomeDesktop-4.0.gir 文件。请在系统中安装所需的软件包。"

@@ -194,17 +194,60 @@ touch "$TEMPLATES/新建文本文件.txt"
 
 ---
 
-## 5. 文件清单 / 恢复
+## 5. 修复 DING 桌面右键菜单「大部分不是中文」
+
+现象：桌面空白/图标右键菜单里 `Paste / Select All / Undo / Redo / Arrange Icons /
+Arrange By… / Show Desktop in Files / Change Background… / Desktop Icons Settings /
+Display Settings / New Document / Keep Arranged… / Sort by …` 等仍是英文。
+
+原因：DING（v99）自带的 `locale/zh_CN/LC_MESSAGES/ding.mo` 不全——`desktopMenu.js`
+里用到的这些 `_()` 字符串在 `.mo` 中没有译文，gettext 回退成英文。`locale` 和 `LANG`
+都正常，不是系统区域设置问题（可用 `gjs` + `bindtextdomain` 单测确认）。
+
+修复：基于**已安装**的源码重新生成一份完整的 `zh_CN` 翻译并编译装回。
+本技能目录 `ding-i18n/` 已存好成品（`zh_CN.po`、`ding.mo`、`reinstall.sh`）。
+
+```bash
+# 一键装回并热重启 DING
+bash /home/who/.config/opencode/skills/gnome-desktop-context-menus/ding-i18n/reinstall.sh
+```
+
+重新生成（若扩展升级导致字符串变化）：
+
+```bash
+EXT=~/.local/share/gnome-shell/extensions/ding@rastersoft.com
+cd "$EXT"
+xgettext --from-code=UTF-8 --language=JavaScript --keyword=_ --keyword=gettext \
+  --output=/tmp/ding.pot app/*.js *.js          # 提取本版本实际用到的 msgid
+# 译文来源优先级：已装 .mo → 上游 master po/zh_CN.po（含 #~ obsolete 条目）→ 手工补
+# 用本技能 ding-i18n/build.py 的思路合并后：
+msgfmt -o /tmp/ding.mo /tmp/zh_CN.po && \
+  install -m644 /tmp/ding.mo "$EXT/locale/zh_CN/LC_MESSAGES/ding.mo"
+pkill -f '^gjs .*app/ding\.js'
+```
+
+要点：
+- 上游 `master` 的 `po/zh_CN.po` 里这些串大多还在，只是被标成 `#~`(obsolete)，可直接复用。
+- 注意 v99 源码把占位符从 `${X}` 改成了 `{X}`（见 `fileItem.js`/`autoAr.js`），译文里也要用 `{X}`，否则匹配不上。
+- 未译的还有：`Use sandboxing if available`、`Don't use sandboxing`、`GnomeDesktop-4.0 GIR …`，已在成品里补齐。
+- **EGO 自动更新会覆盖 `ding.mo`**，更新后重跑 `reinstall.sh` 即可。
+- `gettext` 有进程内缓存，改完必须重启 DING 进程才生效。
+
+---
+
+## 6. 文件清单 / 恢复
 
 | 改动 | 位置 |
 |---|---|
 | DING 扩展 | `~/.local/share/gnome-shell/extensions/ding@rastersoft.com/` |
 | Nautilus 扩展 | `~/.local/share/nautilus-python/extensions/open-in-vscode.py` |
 | DING 补丁 | 上述 `app/fileItemMenu.js`、`app/desktopMenu.js`（备份建议存 `/tmp/opencode/ding-backup/`） |
+| DING 中文翻译 | `.../ding@rastersoft.com/locale/zh_CN/LC_MESSAGES/ding.mo`（成品在技能 `ding-i18n/`，原文件备份 `ding-i18n/ding.mo.orig.bak`） |
 | 文本模板 | `~/模板/新建文本文件.txt` |
 
 恢复：
 - 去掉 Nautilus 项：`rm ~/.local/share/nautilus-python/extensions/open-in-vscode.py && nautilus -q`
 - 去掉桌面 VSCode 项：还原 `fileItemMenu.js`/`desktopMenu.js` 备份，杀 DING 进程。
 - 去掉文本模板：`rm ~/模板/新建文本文件.txt`
+- 还原中文翻译：`cp .../ding-i18n/ding.mo.orig.bak <扩展>/locale/zh_CN/LC_MESSAGES/ding.mo`
 - 彻底移除 DING：`gnome-extensions uninstall ding@rastersoft.com`，并从 `enabled-extensions` 移除该 uuid。
