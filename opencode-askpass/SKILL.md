@@ -65,7 +65,7 @@ sudo -A <命令>
 
 5. sudo 缓存配置：
 
-在 `/etc/sudoers.d/timeout` 和 `/etc/sudoers.d/timeout_type` 写入：
+在 `/etc/sudoers.d/` 下新建一个配置文件（如 opencode-timestamp），内容如下：
 
 ```bash
 Defaults    timestamp_type=global
@@ -94,5 +94,6 @@ sudo -A "echo true" && echo "提权成功"                  # 弹框后返回 0
 
 ## 卸载 / 恢复
 
-删除 sudo-askpass.sh, ssh-askpass.sh, askpass.js 三个文件; 
-删掉 `AGENTS.md` 里的 `## OpenCode 密码交互设置` 一节。
+- 删除 sudo-askpass.sh, ssh-askpass.sh, askpass.js 三个文件; 
+- 删掉 `AGENTS.md` 里的 `## OpenCode 密码交互设置` 一节。
+- 删除 `/etc/sudoers.d/opencode-timestamp` 文件。
