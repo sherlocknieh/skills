@@ -8,18 +8,7 @@ description: 为 opencode 配置交互式密码对话框，解决无终端界面
 opencode 的 bash 工具运行在后台, 没有终端交互界面，`sudo` 和 `ssh` 都无法输入密码,
 本 skill 为 opencode 注入插件, 使 `sudo` 和 `ssh` 能调用 GUI 对话框来接收密码输入。
 
-## 组成
-
-| 组件 | 路径 | 作用 |
-| --- | --- | --- |
-| sudo helper | `~/.config/opencode/sudo-askpass.sh` | 弹 zenity 密码框，密码输出到 stdout |
-| ssh helper | `~/.config/opencode/ssh-askpass.sh` | 同上，标题为「SSH 需要密码」 |
-| 环境变量 | `SUDO_ASKPASS` / `SSH_ASKPASS` | 指向 helper 脚本，sudo/ssh 据此找密码程序 |
-| 插件 | `~/.config/opencode/plugins/askpass.js` | 每次 shell 执行前注入两个变量 |
-| 规则文档 | `~/.config/opencode/AGENTS.md` | 告知每个 agent 可以使用 askpass 来输入密码 |
-
-
-## 安装
+## 步骤
 
 1. 创建 sudo helper 可执行脚本 `~/.config/opencode/sudo-askpass.sh`：
 
@@ -73,7 +62,25 @@ sudo -A <命令>
 ```
 ````
 
-5. 重启 opencode（配置/插件/skill 只在启动时加载，不热重载）。
+
+5. sudo 缓存配置：
+
+在 `/etc/sudoers.d/timeout` 和 `/etc/sudoers.d/timeout_type` 写入：
+
+```bash
+Defaults    timestamp_type=global
+Defaults    timestamp_timeout=5
+```
+
+- `timestamp_type=global`：缓存对当前用户全局生效; （opencode 打开的各 shell 是独立进程, 需要全局缓存才能覆盖）;
+- `timestamp_timeout=5`：5 分钟内无需重输密码；
+- 清除缓存用 `sudo -k`;
+
+
+
+6. 重启 opencode（配置/插件/skill 只在启动时加载，不热重载）。
+
+
 
 ## 验证与排查
 
@@ -82,7 +89,7 @@ echo "$SUDO_ASKPASS"                                   # 应指向 sudo helper
 echo "$SSH_ASKPASS"                                    # 应指向 ssh helper
 test -x ~/.config/opencode/sudo-askpass.sh && echo ok
 test -x ~/.config/opencode/ssh-askpass.sh && echo ok
-sudo --askpass true && echo "提权成功"                # 弹框后返回 0
+sudo -A "echo true" && echo "提权成功"                  # 弹框后返回 0
 ```
 
 ## 卸载 / 恢复
