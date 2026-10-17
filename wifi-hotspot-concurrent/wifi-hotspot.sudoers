@@ -1,1 +1,0 @@
-who ALL=(root) NOPASSWD: /usr/local/bin/wifi-hotspot

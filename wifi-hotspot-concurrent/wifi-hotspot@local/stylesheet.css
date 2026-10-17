@@ -1,0 +1,67 @@
+.wifi-hotspot-content {
+    spacing: 10px;
+    padding: 8px 2px 6px;
+}
+
+.wifi-hotspot-row {
+    spacing: 10px;
+    padding: 4px 0;
+}
+
+.wifi-hotspot-label {
+    min-width: 4em;
+}
+
+.wifi-hotspot-entry {
+    min-width: 150px;
+    min-height: 2em;
+    padding: 0 8px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 5px;
+    color: -st-light-text-color;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.wifi-hotspot-entry .entry-button {
+    min-width: 1.8em;
+    min-height: 1.8em;
+    padding: 0;
+}
+
+.wifi-hotspot-password-entry .entry-button StIcon {
+    icon-size: 1em;
+}
+
+.wifi-hotspot-apply {
+    margin-top: 2px;
+    color: -st-light-text-color;
+    background-color: -st-accent-color;
+}
+
+.wifi-hotspot-clients-content {
+    spacing: 6px;
+    padding: 8px 2px 6px;
+}
+
+.wifi-hotspot-client-row {
+    spacing: 8px;
+    padding: 4px 0;
+}
+
+.wifi-hotspot-client-mac {
+    font-size: 0.9em;
+}
+
+.wifi-hotspot-empty {
+    padding: 8px;
+}
+
+.wifi-hotspot-label,
+.wifi-hotspot-client-details,
+.wifi-hotspot-empty {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.wifi-hotspot-section-separator StLabel {
+    color: rgba(255, 255, 255, 0.9);
+}

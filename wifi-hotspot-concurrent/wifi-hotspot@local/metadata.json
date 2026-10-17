@@ -1,7 +1,9 @@
 {
-  "uuid": "wifi-hotspot@who.local",
+  "uuid": "wifi-hotspot@local",
   "name": "Wi-Fi 热点",
   "description": "在保留当前 Wi-Fi 连接的同时开启共享热点（STA+AP 并发），调用 /usr/local/bin/wifi-hotspot。",
-  "shell-version": ["50"],
+  "shell-version": [
+    "50"
+  ],
   "version": 1
 }
