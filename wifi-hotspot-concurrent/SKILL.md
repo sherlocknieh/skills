@@ -131,20 +131,21 @@ shell 跑在嵌套实例里（`mutter-devkit` 窗口），用随附的 `gnome-ex
 sudo dnf install -y mutter-devkit
 
 # 在技能目录下安装到 PATH
-install -Dm755 ./gnome-ext-dev.sh ~/.local/bin/gnome-ext-dev
+install -Dm755 ./wifi-hotspot@local/gnome-ext-dev.sh ~/.local/bin/gnome-ext-dev
 
-cd ~/.local/share/gnome-shell/extensions/wifi-hotspot@local
-gnome-ext-dev wifi-hotspot@local      # 或直接跑 ./gnome-ext-dev.sh
+gnome-ext-dev wifi-hotspot@local
+# 也可以在技能目录下直接运行源码中的脚本
+./wifi-hotspot@local/gnome-ext-dev.sh wifi-hotspot@local "$PWD/wifi-hotspot@local"
 ```
 
 若在技能目录里直接开发，把已安装目录换成软链，避免每次复制（脚本默认监听已安装目录，
 也可以第二参数显式传入源码目录：`gnome-ext-dev.sh <uuid> <src>`）：
 
 ```bash
-# 在含 metadata.json 的源码/技能目录里执行
+# 在技能目录下执行；扩展源码位于含 metadata.json 的子目录
 ext="$HOME/.local/share/gnome-shell/extensions/wifi-hotspot@local"
 [ -e "$ext" ] && [ ! -L "$ext" ] && mv "$ext" "$ext.bak"
-ln -s "$PWD" "$ext"
+ln -s "$PWD/wifi-hotspot@local" "$ext"
 ```
 
 脚本启动 `dbus-run-session -- gnome-shell --wayland --devkit`，轮询扩展目录的 mtime，
