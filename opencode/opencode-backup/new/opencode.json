@@ -1,0 +1,10 @@
+{
+  "mcp": {
+    "servers": {
+      "dida365": {
+        "type": "remote",
+        "url": "https://mcp.dida365.com"
+      }
+    }
+  }
+}

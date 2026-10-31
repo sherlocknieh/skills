@@ -75,6 +75,7 @@ Defaults    timestamp_timeout=5
 - `timestamp_type=global`：缓存对当前用户全局生效; （opencode 打开的各 shell 是独立进程, 需要全局缓存才能覆盖）;
 - `timestamp_timeout=5`：5 分钟内无需重输密码；
 - 清除缓存用 `sudo -k`;
+- 这一步需要 root；如果 `sudo` 报 `no new privileges` 标志，先按文末「遇到 no new privileges 标志」处理。
 
 
 
@@ -92,8 +93,55 @@ test -x ~/.config/opencode/ssh-askpass.sh && echo ok
 sudo -A "echo true" && echo "提权成功"                  # 弹框后返回 0
 ```
 
+### 遇到 no new privileges 标志
+
+```
+sudo: 已设置“no new privileges”标志，它阻止 sudo 以 root 身份运行。
+```
+
+**解释**:
+
+由于用户开机后先从桌面图标启动了 opencode，导致 opencode 服务端进程带着 `no_new_privs` 运行，内核拒绝一切提权；
+
+**解决**：杀掉旧服务端，从命令行起新的
+
+```bash
+pkill -f 'opencode-cli serve' && opencode
+```
+
+**后续预防**
+
+- 短期：每次开机后记得先用命令行启动 opencode，之后再使用桌面端。
+
+- 长期：把服务端交给 systemd，设置开机自启:
+
+```bash
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/opencode.service <<'EOF'
+[Unit]
+Description=OpenCode background server
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=%h/.local/bin/opencode service start
+ExecStop=%h/.local/bin/opencode service stop
+
+[Install]
+WantedBy=default.target
+EOF
+
+systemctl --user daemon-reload
+systemctl --user enable --now opencode.service
+systemctl --user status opencode.service --no-pager
+```
+
+
 ## 卸载 / 恢复
 
 - 删除 sudo-askpass.sh, ssh-askpass.sh, askpass.js 三个文件; 
 - 删掉 `AGENTS.md` 里的 `## OpenCode 密码交互设置` 一节。
 - 删除 `/etc/sudoers.d/opencode-timestamp` 文件。
+- 若启用了 systemd 托管：
+  `systemctl --user disable --now opencode.service && rm ~/.config/systemd/user/opencode.service`
