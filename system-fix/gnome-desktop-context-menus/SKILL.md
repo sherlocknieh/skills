@@ -13,6 +13,7 @@ description: 在 Fedora（44+，GNOME/Wayland）上定制桌面与文件管理�
 4. 系统模板添加「新建文本文件」（Nautilus 与桌面通用）
 
 验证环境：Fedora 44 Workstation，GNOME Shell 50.5，Wayland，用户 `who`，`code` 位于 `/usr/bin/code`。
+最后验证：2026-11-01，DING v102（EGO 自动更新后重打补丁 + 重新生成翻译）。
 
 > 通用前提：`SUDO_ASKPASS` 已配置（见全局 AGENTS.md），提权命令用 `sudo --askpass ...`。
 > 所有改动基本都在用户目录，仅 DING 安装来自 EGO，nautilus-python 需 dnf 安装。
@@ -90,54 +91,66 @@ DING 没有插件/菜单扩展 API，只能直接改它加载的 JS（`app/fileI
 DING 是独立进程，改完杀进程即可热生效；但 **EGO 自动更新会覆盖补丁**，更新后需重打。
 重打前先备份原文件（如 `/tmp/opencode/ding-backup/`）。
 
+> 以下补丁代码以 **DING v102**（`shell-version: ["50","51"]`）为准。v102 的 `spawnCommandLine()`
+> 先做 `shell_parse_argv` 再 `trySpawn`，**不经过 shell**，所以路径含空格时用 `shell_quote` 会出错；
+> 统一改成直接拼 argv + `trySpawn()`。旧版（v99 及以前）用 `spawnCommandLine(\`code ...\`)` 也可以。
+
 ### 3.1 `app/fileItemMenu.js`
 
-在构造函数里已有 `_scriptsMonitor`，无所谓。找到 `_addActions()` 中这一行：
+先加一个选区助手（放在 `_getExtractionSupportedTypes()` 之前即可）：
+
+```js
+    _selectedFolderPaths() {
+        const selection = this._desktopManager.getCurrentSelection(false);
+        if (!selection)
+            return [];
+        return selection
+            .filter(item => item.isDirectory && item.uri.startsWith('file://'))
+            .map(item => GLib.filename_from_uri(item.uri)[0])
+            .filter(path => path !== null);
+    }
+```
+
+然后在 `_addActions()` 中找到：
 
 ```js
 this._addNewAction('open-with', null, this._doOpenWith.bind(this));
 ```
 
-在其后插入新 action：
+在其后插入两个 action：
 
 ```js
 this._addNewAction('open-in-vscode', null, () => {
-    const selection = this._desktopManager.getCurrentSelection(false);
-    if (selection === null) {
-        return;
-    }
-    const paths = selection
-        .map(fileItem => fileItem.uri)
-        .filter(uri => uri.startsWith('file://'))
-        .map(uri => GLib.filename_from_uri(uri)[0])
-        .filter(path => path !== null);
-    if (paths.length !== 0) {
-        DesktopIconsUtil.spawnCommandLine(`code ${paths.map(path => GLib.shell_quote(path)).join(' ')}`);
-    }
+    DesktopIconsUtil.launchVSCode(this._selectedFolderPaths());
+});
+
+this._addNewAction('open-in-opencode', null, () => {
+    for (const path of this._selectedFolderPaths())
+        DesktopIconsUtil.launchOpencode(path);
 });
 ```
 
-在 `_createMenu()` 中，找到第一段「Open」块：
+在 `_createMenu()` 中，找到第一段「Open」块（v102 里变量名是 `addedElement`）：
 
 ```js
         if (!fileItem.isStackMarker) {
             this._newMenuElement(
                 selectedItemsNum > 1 ? _('Open All...') : _('Open'),
-                "open-selected-files",
+                'open-selected-files',
                 section
             );
-            added_element = true;
+            addedElement = true;
         }
 ```
 
-在闭合 `}` 之后、`let keepStacked = ...` 之前插入：
+在该块闭合 `}` 之后、`const keepStacked = Prefs.desktopSettings...` 之前插入：
 
 ```js
         const folderSelection = this._desktopManager.getCurrentSelection(false);
-        if ((folderSelection !== null) &&
+        if (folderSelection && (folderSelection.length > 0) &&
             folderSelection.every(item => item.isDirectory && item.uri.startsWith('file://'))) {
-            this._newMenuElement('用 VSCode 打开', "open-in-vscode", section);
-            this._newMenuElement('用 OpenCode 打开', "open-in-opencode", section);
+            this._newMenuElement('用 VSCode 打开', 'open-in-vscode', section);
+            this._newMenuElement('用 OpenCode 打开', 'open-in-opencode', section);
             addedElement = true;
         }
 ```
@@ -148,7 +161,10 @@ this._addNewAction('open-in-vscode', null, () => {
 
 ```js
 this._addNewAction('open-in-vscode-desktop', null, () => {
-    DesktopIconsUtil.spawnCommandLine(`code ${GLib.shell_quote(this._desktopDir.get_path())}`);
+    DesktopIconsUtil.launchVSCode([this._desktopDir.get_path()]);
+});
+this._addNewAction('open-in-opencode-desktop', null, () => {
+    DesktopIconsUtil.launchOpencode(this._desktopDir.get_path());
 });
 ```
 
@@ -170,48 +186,55 @@ this._newMenuElement('用 OpenCode 打开', "open-in-opencode-desktop", section)
 OpenCode 的入口是终端 TUI，桌面版 `/opt/OpenCode/ai.opencode` 只响应 `opencode://` 深链、
 会忽略目录参数，所以统一用「新终端 + `opencode <目录>`」打开。
 
-先在 `app/desktopIconsUtil.js`（`launchTerminal()` 之后）加共享助手，供两个菜单文件调用：
+先在 `app/desktopIconsUtil.js`（`launchTerminal()` 之后）加两个共享助手，供两个菜单文件调用：
 
 ```js
 export function launchOpencode(workdir) {
-    const quoted = GLib.shell_quote(workdir);
-    if (GLib.find_program_in_path('ptyxis') !== null)
-        spawnCommandLine(`ptyxis -d ${quoted} -- opencode`);
-    else if (GLib.find_program_in_path('xdg-terminal-exec') !== null)
-        spawnCommandLine(`xdg-terminal-exec --dir=${quoted} opencode`);
-    else if (GLib.find_program_in_path('kgx') !== null)
-        spawnCommandLine(`kgx --working-directory=${quoted} -- opencode`);
-    else if (GLib.find_program_in_path('gnome-terminal') !== null)
-        spawnCommandLine(`gnome-terminal --working-directory=${quoted} -- opencode`);
-    else
-        spawnCommandLine(`opencode ${quoted}`);
+    const candidates = [
+        ['ptyxis', ['-d', workdir, '--', 'opencode']],
+        ['xdg-terminal-exec', [`--dir=${workdir}`, 'opencode']],
+        ['kgx', [`--working-directory=${workdir}`, '--', 'opencode']],
+        ['gnome-terminal', [`--working-directory=${workdir}`, '--', 'opencode']],
+    ];
+    for (const [name, args] of candidates) {
+        const exec = GLib.find_program_in_path(name);
+        if (exec === null)
+            continue;
+        try {
+            trySpawn(workdir, [exec, ...args], null);
+            return;
+        } catch (err) {
+            print(`Starting ${exec} failed with ${err}`);
+        }
+    }
+    launchTerminal(workdir, 'opencode');
+}
+
+export function launchVSCode(paths) {
+    if (paths.length === 0)
+        return;
+    try {
+        trySpawn(null, ['code', ...paths], null);
+    } catch (err) {
+        print(`Starting code failed with ${err}`);
+    }
 }
 ```
 
-`app/fileItemMenu.js` 的 `_addActions()` 里加（与 `open-in-vscode` 同款选区逻辑，多选则每个文件夹各开一个）：
+要点：
+- `trySpawn()` 带 `SpawnFlags.SEARCH_PATH`，所以传 `'code'`/`'opencode'` 即可按 PATH 查找；
+  DING 进程的 PATH 含 `~/.local/bin`（`opencode` 就在那里）。
+- Fedora 上只有 `ptyxis`；`ptyxis -d <dir> -- <cmd>` 已实测可用（`--` 后面的参数即要执行的命令）。
 
-```js
-this._addNewAction('open-in-opencode', null, () => {
-    const selection = this._desktopManager.getCurrentSelection(false);
-    if (selection === null)
-        return;
-    const paths = selection
-        .map(fileItem => fileItem.uri)
-        .filter(uri => uri.startsWith('file://'))
-        .map(uri => GLib.filename_from_uri(uri)[0])
-        .filter(path => path !== null);
-    for (const path of paths)
-        DesktopIconsUtil.launchOpencode(path);
-});
-```
-
-`app/desktopMenu.js` 的 `_addActions()` 里加：
+`app/desktopMenu.js` 的 `_addActions()` 里加（见 3.2 已一并给出）：
 
 ```js
 this._addNewAction('open-in-opencode-desktop', null, () => {
     DesktopIconsUtil.launchOpencode(this._desktopDir.get_path());
 });
 ```
+
+`app/fileItemMenu.js` 的 action 见 3.1（多选时每个文件夹各开一个终端）。
 
 ### 3.4 生效与校验
 
@@ -255,7 +278,7 @@ touch "$TEMPLATES/新建文本文件.txt"
 Arrange By… / Show Desktop in Files / Change Background… / Desktop Icons Settings /
 Display Settings / New Document / Keep Arranged… / Sort by …` 等仍是英文。
 
-原因：DING（v99）自带的 `locale/zh_CN/LC_MESSAGES/ding.mo` 不全——`desktopMenu.js`
+原因：DING 自带的 `locale/zh_CN/LC_MESSAGES/ding.mo` 不全（v99 与 v102 均如此）——`desktopMenu.js`
 里用到的这些 `_()` 字符串在 `.mo` 中没有译文，gettext 回退成英文。`locale` 和 `LANG`
 都正常，不是系统区域设置问题（可用 `gjs` + `bindtextdomain` 单测确认）。
 
@@ -264,7 +287,7 @@ Display Settings / New Document / Keep Arranged… / Sort by …` 等仍是英�
 
 ```bash
 # 一键装回并热重启 DING
-bash /home/who/.config/opencode/skills/gnome-desktop-context-menus/ding-i18n/reinstall.sh
+bash ~/.config/opencode/skills/system-fix/gnome-desktop-context-menus/ding-i18n/reinstall.sh
 ```
 
 重新生成（若扩展升级导致字符串变化）：
@@ -283,8 +306,18 @@ pkill -f '^gjs .*app/ding\.js'
 
 要点：
 - 上游 `master` 的 `po/zh_CN.po` 里这些串大多还在，只是被标成 `#~`(obsolete)，可直接复用。
-- 注意 v99 源码把占位符从 `${X}` 改成了 `{X}`（见 `fileItem.js`/`autoAr.js`），译文里也要用 `{X}`，否则匹配不上。
+- 注意 v99 及以后源码把占位符从 `${X}` 改成了 `{X}`（见 `fileItem.js`/`autoAr.js`），译文里也要用 `{X}`，否则匹配不上。
 - 未译的还有：`Use sandboxing if available`、`Don't use sandboxing`、`GnomeDesktop-4.0 GIR …`，已在成品里补齐。
+- v102 相比 v99 只多出 1 条新串：`Failed to set metadata::sandbox flag` → 「设置 metadata::sandbox 标志失败」，成品里已含。
+- 校验是否还有漏译（`msgattrib --untranslated` 应只剩空 `msgid` 头）：
+
+```bash
+cd /tmp/opencode
+xgettext --from-code=UTF-8 --language=JavaScript --keyword=_ --keyword=gettext \
+  --output=ding.pot "$HOME"/.local/share/gnome-shell/extensions/ding@rastersoft.com/app/*.js
+msgunfmt "$HOME/.local/share/gnome-shell/extensions/ding@rastersoft.com/locale/zh_CN/LC_MESSAGES/ding.mo" -o installed.po
+msgmerge -q installed.po ding.pot -o merged.po && msgattrib --untranslated --no-obsolete merged.po | grep '^msgid'
+```
 - **EGO 自动更新会覆盖 `ding.mo`**，更新后重跑 `reinstall.sh` 即可。
 - `gettext` 有进程内缓存，改完必须重启 DING 进程才生效。
 
@@ -306,3 +339,40 @@ pkill -f '^gjs .*app/ding\.js'
 - 去掉文本模板：`rm ~/模板/新建文本文件.txt`
 - 还原中文翻译：`cp .../ding-i18n/ding.mo.orig.bak <扩展>/locale/zh_CN/LC_MESSAGES/ding.mo`
 - 彻底移除 DING：`gnome-extensions uninstall ding@rastersoft.com`，并从 `enabled-extensions` 移除该 uuid。
+
+---
+
+## 7. 扩展被 EGO 自动更新覆盖后的重打清单
+
+EGO 会在后台静默把 DING 升到新版本（如 v99 → v102），**新装的文件会盖掉所有 JS 补丁和 `ding.mo`**。
+Nautilus 扩展与文本模板在用户目录、不受影响。发现右键菜单里 VSCode/OpenCode 项消失时，按顺序做：
+
+```bash
+EXT=~/.local/share/gnome-shell/extensions/ding@rastersoft.com
+
+# 1) 看版本
+grep '"version"' "$EXT/metadata.json"
+
+# 2) 备份当前（已被覆盖的）原文件，便于回滚
+mkdir -p /tmp/opencode/ding-backup-$(date +%Y%m%d)
+cp -a "$EXT"/app/{fileItemMenu,desktopMenu,desktopIconsUtil}.js /tmp/opencode/ding-backup-$(date +%Y%m%d)/
+
+# 3) 确认锚点还在（版本升级后行号会变，但下列语句通常不变）
+grep -n "open-with'\|keep-stacked')" "$EXT/app/fileItemMenu.js"
+grep -n "open-in-terminal-desktop" "$EXT/app/desktopMenu.js"
+grep -n "export function launchTerminal" "$EXT/app/desktopIconsUtil.js"
+
+# 4) 按第 3 节重打补丁（注意 v102 用 trySpawn + argv，不要用 shell_quote）
+
+# 5) 重装翻译并热重启
+bash ~/.config/opencode/skills/system-fix/gnome-desktop-context-menus/ding-i18n/reinstall.sh
+
+# 6) 校验
+node --check "$EXT/app/fileItemMenu.js"
+node --check "$EXT/app/desktopMenu.js"
+node --check "$EXT/app/desktopIconsUtil.js"
+journalctl --user -b --since "-2min" | grep -iE 'DING:.*(error|exception|traceback)'
+```
+
+提示：EGO 升级不等于 `shell-version` 变化，Wayland 下不必注销；改完 JS 杀掉 DING 进程即可热生效。
+如果 `node --check` 通过、但菜单里没有新项，检查 `_createMenu()` 里 `addedElement` 有没有被后续代码重置。
