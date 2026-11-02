@@ -7,6 +7,16 @@ description: 在 Linux 桌面（含 Wayland）上临时锁定键盘，用于擦�
 
 用 `EVIOCGRAB` 独占键盘设备，事件不会到达任何应用，Wayland 下同样有效；鼠标和触控板不抓。
 
+## 原理（简述）
+
+`InputDevice.grab()` 走的是内核 `EVIOCGRAB`：设备被本进程独占后，内核只把事件交给它，
+libinput / 合成器 / 应用都收不到——所以不依赖 X11，Wayland 也有效
+（`xtrlock`、`xinput disable` 只在 X11 下有用，`Super+L` 又要敲密码解锁）。
+
+不抓的东西是刻意留的退路：电源键、合盖/睡眠键、带 `EV_SW` 的耳机插孔、鼠标与触控板。
+笔记本的 Fn 组合键常由独立设备（如 Ideapad extra buttons、Video Bus）上报，会一并独占，
+否则擦键盘时按到 Fn 仍会调亮度、关触摸板。
+
 ## 依赖
 
 ```bash
