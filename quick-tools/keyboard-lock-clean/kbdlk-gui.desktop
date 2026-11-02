@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=键盘锁
+GenericName=临时锁定键盘
+Comment=擦键盘时临时挡住按键，鼠标和触控板照常可用
+Exec=__KBDBIN__/kbdlk-gui
+Icon=input-keyboard
+Terminal=false
+Categories=Utility;Accessibility;
+Keywords=keyboard;lock;clean;kbd;键盘;锁定;擦键盘;
+StartupNotify=true
+StartupWMClass=io.github.kbdlk.Gui

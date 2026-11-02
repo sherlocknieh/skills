@@ -1,0 +1,256 @@
+#!/usr/bin/env python3
+"""kbdlk-gui — 临时锁定键盘的 GTK4 小工具（鼠标/触控板照常可用）。
+
+点“锁定键盘”独占键盘与 Fn/热键设备，点“解锁”或关窗口即恢复。
+"""
+
+import sys
+
+import evdev
+import gi
+from evdev import ecodes as E
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, Gio, Gtk, Pango  # noqa: E402
+
+REQUIRED = {E.KEY_A, E.KEY_Z, E.KEY_ENTER, E.KEY_SPACE}
+
+# 电源键、合盖、睡眠键不碰，免得锁住后没法关机
+SKIP_NAMES = ("power button", "lid switch", "sleep button")
+
+# 笔记本的 Fn 组合键常常由独立设备上报（如 Ideapad extra buttons / Video Bus）
+SYSTEM_KEYS = {
+    getattr(E, name)
+    for name in (
+        "KEY_BRIGHTNESSUP", "KEY_BRIGHTNESSDOWN", "KEY_BRIGHTNESS_CYCLE",
+        "KEY_BRIGHTNESS_AUTO", "KEY_KBDILLUMUP", "KEY_KBDILLUMDOWN",
+        "KEY_KBDILLUMTOGGLE", "KEY_RFKILL", "KEY_MICMUTE", "KEY_CAMERA",
+        "KEY_SWITCHVIDEOMODE", "KEY_VIDEO_NEXT", "KEY_TOUCHPAD_TOGGLE",
+        "KEY_TOUCHPAD_ON", "KEY_TOUCHPAD_OFF", "KEY_PLAYPAUSE", "KEY_MUTE",
+        "KEY_VOLUMEUP", "KEY_VOLUMEDOWN", "KEY_NEXTSONG", "KEY_PREVIOUSSONG",
+        "KEY_PROG1", "KEY_PROG2", "KEY_PROG3", "KEY_PROG4", "KEY_HELP",
+        "KEY_FAVORITES", "KEY_REFRESH_RATE_TOGGLE",
+    )
+    if hasattr(E, name)
+}
+
+
+def targets():
+    """要独占的设备：能打字的键盘 + 上报 Fn / 多媒体等系统键的设备。"""
+    found = []
+    for path in sorted(evdev.list_devices()):
+        try:
+            dev = evdev.InputDevice(path)
+        except OSError:
+            continue
+        caps = dev.capabilities()
+        keys = set(caps.get(E.EV_KEY, []))
+        if dev.name.lower() in SKIP_NAMES:
+            continue
+        if E.EV_SW in caps:  # 带耳机插孔 / 合盖开关的设备，抓了会影响状态检测
+            continue
+        if keys & {E.BTN_LEFT, E.BTN_MOUSE, E.BTN_TOUCH}:  # 鼠标/触控板不锁
+            continue
+        if REQUIRED <= keys or keys & SYSTEM_KEYS:
+            found.append(dev)
+    return found
+
+
+class Locker:
+    def __init__(self):
+        self.devices = []
+        self.skipped = []
+
+    def lock(self):
+        self.devices, self.skipped = [], []
+        for dev in targets():
+            try:
+                dev.grab()
+                self.devices.append(dev)
+            except OSError:
+                self.skipped.append(dev.name)
+                dev.close()
+        return len(self.devices)
+
+    def unlock(self):
+        for dev in self.devices:
+            try:
+                dev.ungrab()
+                dev.close()
+            except OSError:
+                pass
+        self.devices = []
+
+
+def wrap_label(text, css=(), width=32):
+    label = Gtk.Label(label=text)
+    label.set_wrap(True)
+    label.set_justify(Gtk.Justification.CENTER)
+    label.set_halign(Gtk.Align.CENTER)
+    label.set_max_width_chars(width)
+    for name in css:
+        label.add_css_class(name)
+    return label
+
+
+class LockWindow(Adw.ApplicationWindow):
+    def __init__(self, app):
+        super().__init__(application=app, title="键盘锁", resizable=False)
+        self.set_default_size(360, 480)
+        self.locker = Locker()
+        self.locked = False
+
+        toolbar = Adw.ToolbarView()
+        toolbar.add_top_bar(Adw.HeaderBar())
+        self.set_content(toolbar)
+
+        self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE)
+        self.stack.add_named(self.build_idle(), "idle")
+        self.stack.add_named(self.build_locked(), "locked")
+        toolbar.set_content(self.stack)
+
+        self.connect("close-request", self.on_close)
+
+    @staticmethod
+    def page():
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        box.set_margin_top(18)
+        box.set_margin_bottom(20)
+        box.set_margin_start(26)
+        box.set_margin_end(26)
+        return box
+
+    @staticmethod
+    def icon(name, size):
+        image = Gtk.Image.new_from_icon_name(name)
+        image.set_pixel_size(size)
+        image.set_halign(Gtk.Align.CENTER)
+        return image
+
+    @staticmethod
+    def action_button(label, css, on_click):
+        button = Gtk.Button(label=label)
+        button.add_css_class(css)
+        button.add_css_class("pill")
+        button.set_halign(Gtk.Align.CENTER)
+        button.set_size_request(220, -1)
+        button.connect("clicked", on_click)
+        return button
+
+    def build_idle(self):
+        box = self.page()
+        box.append(self.icon("input-keyboard-symbolic", 56))
+        box.append(wrap_label("临时锁定键盘", ("title-2",)))
+        box.append(wrap_label("擦键盘时挡住按键和 Fn 热键。鼠标、触控板照常可用。",
+                              ("dim-label",), 30))
+
+        self.note = wrap_label("", ("caption",), 34)
+        self.note.add_css_class("dim-label")
+
+        box.append(self.note)
+        box.append(Gtk.Box(vexpand=True))  # 撑开，按钮沉到底部，内容再长也不挤
+
+        self.lock_btn = self.action_button("锁定键盘", "suggested-action", self.on_lock)
+        box.append(self.lock_btn)
+        box.append(wrap_label(
+            "笔记本提示：Fn 组合键（亮度 / 音量 / FnLock）常由独立设备上报，锁定时会一并拦下；"
+            "若个别按键还有反应，可按 Fn+Esc 切换一次 FnLock 再试。",
+            ("caption", "dim-label"), 34))
+        return box
+
+    def build_locked(self):
+        box = self.page()
+        box.append(self.icon("changes-prevent-symbolic", 56))
+        box.append(wrap_label("键盘已锁定", ("title-2",)))
+        box.append(wrap_label("按键和 Fn 组合键都已拦下。用鼠标点下面“解锁”，或关掉本窗口。",
+                              ("dim-label",), 30))
+
+        self.dev_header = Gtk.Label(label="已锁定的设备")
+        self.dev_header.add_css_class("caption-heading")
+        self.dev_header.add_css_class("dim-label")
+        self.dev_header.set_halign(Gtk.Align.START)
+        self.dev_header.set_xalign(0)
+
+        self.dev_list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        self.dev_list.set_margin_top(8)
+        self.dev_list.set_margin_bottom(8)
+        self.dev_list.set_margin_start(12)
+        self.dev_list.set_margin_end(12)
+
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        card.add_css_class("card")
+        card.set_valign(Gtk.Align.START)
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller.set_propagate_natural_height(True)
+        scroller.set_max_content_height(140)  # 设备多时内部滚动，不撑破窗口
+        scroller.set_child(self.dev_list)
+        card.append(scroller)
+
+        # 标题 + 卡片 + 一行说明，讲清这块是“被独占的设备清单”
+        section = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        section.append(self.dev_header)
+        section.append(card)
+        section.append(wrap_label(
+            "这些设备现在被程序独占，按键不会传到任何程序。",
+            ("caption", "dim-label"), 28))
+        box.append(section)
+
+        box.append(Gtk.Box(vexpand=True))
+        box.append(self.action_button("解锁", "destructive-action", self.on_unlock))
+        return box
+
+    def on_lock(self, _button):
+        self.locker.unlock()
+        if not self.locker.lock():
+            self.note.set_text("锁不住：没找到可用的键盘设备（当前用户需要属于 input 组）")
+            return
+        self.note.set_text("")
+
+        rows = []
+        child = self.dev_list.get_first_child()
+        while child is not None:
+            self.dev_list.remove(child)
+            child = self.dev_list.get_first_child()
+        self.dev_header.set_text(f"已锁定的设备（{len(self.locker.devices)} 个）")
+        for dev in self.locker.devices:
+            row = Gtk.Label(label=f"• {dev.name}")
+            row.add_css_class("caption")
+            row.set_xalign(0)
+            row.set_halign(Gtk.Align.FILL)
+            row.set_ellipsize(Pango.EllipsizeMode.END)
+            row.set_tooltip_text(dev.name)
+            self.dev_list.append(row)
+
+        self.locked = True
+        self.stack.set_visible_child_name("locked")
+        self.present()  # 抢回焦点，保证“解锁”一次就能点中
+
+    def unlock(self):
+        self.locker.unlock()
+        self.locked = False
+        self.stack.set_visible_child_name("idle")
+
+    def on_unlock(self, _button):
+        self.unlock()
+
+    def on_close(self, *_args):
+        self.unlock()
+        return False
+
+
+class App(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id="io.github.kbdlk.Gui",
+                         flags=Gio.ApplicationFlags.DEFAULT_FLAGS)
+        self.win = None
+
+    def do_activate(self):
+        if self.win is None:
+            self.win = LockWindow(self)
+        self.win.present()
+
+
+if __name__ == "__main__":
+    sys.exit(App().run(sys.argv))
