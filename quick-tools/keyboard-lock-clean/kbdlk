@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""kbdlk — 临时锁住键盘（鼠标 / 触控板照常可用），擦键盘专用。
+
+  kbdlk          锁 60 秒后自动解锁
+  kbdlk 180      锁 180 秒
+  kbdlk 0        一直锁着，直到手动解除
+  kbdlk -l       只列出会被锁住的设备
+
+手动解除（锁定期间键盘是哑的，Ctrl+C 无效）：
+  * 用鼠标关掉正在运行它的终端窗口
+  * 或从另一台机器 / 另一个会话 `pkill kbdlk`
+"""
+
+import os
+import select
+import signal
+import sys
+import time
+
+import evdev
+from evdev import ecodes as E
+
+REQUIRED = {E.KEY_A, E.KEY_Z, E.KEY_ENTER, E.KEY_SPACE}
+
+# 电源键、合盖、睡眠键不碰，免得锁住后没法关机
+SKIP_NAMES = ("power button", "lid switch", "sleep button")
+
+# 笔记本的 Fn 组合键常常由独立设备上报（如 Ideapad extra buttons / Video Bus）
+SYSTEM_KEYS = {
+    getattr(E, name)
+    for name in (
+        "KEY_BRIGHTNESSUP", "KEY_BRIGHTNESSDOWN", "KEY_BRIGHTNESS_CYCLE",
+        "KEY_BRIGHTNESS_AUTO", "KEY_KBDILLUMUP", "KEY_KBDILLUMDOWN",
+        "KEY_KBDILLUMTOGGLE", "KEY_RFKILL", "KEY_MICMUTE", "KEY_CAMERA",
+        "KEY_SWITCHVIDEOMODE", "KEY_VIDEO_NEXT", "KEY_TOUCHPAD_TOGGLE",
+        "KEY_TOUCHPAD_ON", "KEY_TOUCHPAD_OFF", "KEY_PLAYPAUSE", "KEY_MUTE",
+        "KEY_VOLUMEUP", "KEY_VOLUMEDOWN", "KEY_NEXTSONG", "KEY_PREVIOUSSONG",
+        "KEY_PROG1", "KEY_PROG2", "KEY_PROG3", "KEY_PROG4", "KEY_HELP",
+        "KEY_FAVORITES", "KEY_REFRESH_RATE_TOGGLE",
+    )
+    if hasattr(E, name)
+}
+
+
+def keyboards():
+    """要独占的设备：能打字的键盘 + 上报 Fn / 多媒体等系统键的设备。"""
+    found = []
+    for path in sorted(evdev.list_devices()):
+        try:
+            dev = evdev.InputDevice(path)
+        except OSError:
+            continue
+        caps = dev.capabilities()
+        keys = set(caps.get(E.EV_KEY, []))
+        if dev.name.lower() in SKIP_NAMES:
+            continue
+        if E.EV_SW in caps:  # 带耳机插孔 / 合盖开关的设备，抓了会影响状态检测
+            continue
+        if keys & {E.BTN_LEFT, E.BTN_MOUSE, E.BTN_TOUCH}:  # 鼠标/触控板不锁
+            continue
+        if REQUIRED <= keys or keys & SYSTEM_KEYS:
+            found.append(dev)
+    return found
+
+
+def main():
+    args = sys.argv[1:]
+    if "-h" in args or "--help" in args:
+        print(__doc__.strip())
+        return 0
+    if "-l" in args or "--list" in args:
+        for dev in keyboards():
+            print(f"{dev.path}\t{dev.name}")
+        return 0
+
+    try:
+        timeout = float(args[0]) if args else 60.0
+    except ValueError:
+        print(f"秒数不对：{args[0]}", file=sys.stderr)
+        return 2
+
+    devs = keyboards()
+    if not devs:
+        print("没找到键盘设备（当前用户需要属于 input 组）", file=sys.stderr)
+        return 1
+
+    grabbed, busy = [], []
+    for dev in devs:
+        try:
+            dev.grab()
+            grabbed.append(dev)
+        except OSError as exc:
+            busy.append((dev, exc))
+    for dev, exc in busy:
+        print(f"跳过 {dev.name}：{exc.strerror or exc}", file=sys.stderr)
+    if not grabbed:
+        print("没能锁住任何键盘（设备都被别的程序独占了？）", file=sys.stderr)
+        return 1
+
+    names = "、".join(d.name for d in grabbed)
+    print(f"键盘已锁定：{names}", flush=True)
+    if timeout > 0:
+        print(f"{timeout:.0f} 秒后自动解锁；也可用鼠标关掉本终端窗口。", flush=True)
+    else:
+        print("一直锁定中；用鼠标关掉本终端窗口，或另开终端 pkill kbdlk。", flush=True)
+
+    stop = []
+    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, lambda *_: stop.append(1))
+
+    fds = {d.fd: d for d in grabbed}
+    deadline = time.monotonic() + timeout if timeout > 0 else None
+    live = sys.stderr.isatty()
+
+    try:
+        while not stop:
+            left = None if deadline is None else deadline - time.monotonic()
+            if left is not None and left <= 0:
+                break
+            wait = 1.0 if left is None else min(1.0, left)
+            ready, _, _ = select.select(list(fds), [], [], wait)
+            for fd in ready:
+                try:
+                    while fds[fd].read_one():      # 读掉并丢弃，避免内核缓冲区塞满
+                        pass
+                except BlockingIOError:
+                    pass
+                except OSError:
+                    pass  # 设备被拔掉
+            if live and left is not None:
+                sys.stderr.write(f"\r剩余 {left:4.0f} 秒 ")
+                sys.stderr.flush()
+    finally:
+        for dev in grabbed:
+            try:
+                dev.ungrab()
+                dev.close()
+            except OSError:
+                pass
+        if live:
+            sys.stderr.write("\r")
+        print("键盘已解锁。")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
