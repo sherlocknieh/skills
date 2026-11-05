@@ -14,6 +14,8 @@ description: 在 Fedora（GNOME/Wayland）上安装 InputActions 鼠标笔画手
 - 配套下游发行版（本 skill 的产物仓库）：<https://github.com/sherlocknieh/inputactions-gnome>
 - skill 集合仓库：<https://github.com/sherlocknieh/skills>
 
+> **同步规则**：调用本 skill 修改 InputActions 软件配置/补丁后，只同步到下游仓库 `sherlocknieh/inputactions-gnome`（对应 `config/`、`patches/`、`gnome-extension/`、`tray/` 等），**不要提交或推送到上游 `InputActions/core`**。core 源码仅作为临时构建树，改动以 `client.patch` 形式保存在下游仓库。
+
 ## 一键还原
 
 在装有本 skill 的机器上执行（把 `<skill-dir>` 换成 skill 的实际目录）：
