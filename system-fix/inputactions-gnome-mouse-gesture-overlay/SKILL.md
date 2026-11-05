@@ -18,10 +18,21 @@ description: 在 Fedora（GNOME/Wayland）上安装 InputActions 鼠标笔画手
 
 ## 一键还原
 
-在装有本 skill 的机器上执行（把 `<skill-dir>` 换成 skill 的实际目录）：
+代码不内置在 skill 中，统一从下游仓库获取，需要时下载/更新即可。
+
+首次安装：
 
 ```bash
-bash "<skill-dir>/assets/install.sh"
+git clone https://github.com/sherlocknieh/inputactions-gnome.git ~/projects/inputactions-gnome
+bash ~/projects/inputactions-gnome/install.sh
+```
+
+已有本地仓库时：
+
+```bash
+cd ~/projects/inputactions-gnome
+git pull --ff-only
+bash install.sh
 ```
 
 脚本会依次完成：依赖安装 → 官方安装器 → 固定提交 → 应用客户端补丁 → 构建安装并恢复 setgid → 占位 overlay → GNOME 扩展 → 配置 → 托盘/服务/图标/自启/启动器 → 启用扩展 → daemon → 自检。**脚本结束会杀掉临时客户端**，避免它活过注销占用 TTY。
@@ -100,7 +111,15 @@ gnome-extensions enable inputactions-overlay@local
 
 改手势：编辑 `~/.config/inputactions/config.yaml`，然后重启客户端（或 `inputactions config reload`）。新增折线模板的格式是 3 个点（起点/拐点/终点），拐点 `t=0.5`，两段 alpha 写对应方向；实测 1:2～2:1 的两段长度比可稳定匹配。
 
-升级 InputActions 后直接重跑 `assets/install.sh`：它会 checkout 回固定提交、重新打补丁并重装。
+升级 InputActions 或修改配置/补丁后，重跑仓库里的 `install.sh`：它会 checkout 回固定提交、重新打补丁并重装。
+
+```bash
+cd ~/projects/inputactions-gnome
+git pull --ff-only      # 另一台机器或新克隆时
+bash install.sh
+```
+
+**改动要提交回仓库**（`config/`、`patches/`、`gnome-extension/`、`tray/`），不要改上游 `InputActions/core`。skill 本身只保留说明，不再内置代码副本。
 
 ## 卸载
 
