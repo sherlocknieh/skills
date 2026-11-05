@@ -1,0 +1,61 @@
+#!/bin/sh
+# Start/stop/toggle the InputActions user-session service (client + tray).
+# The system daemon (inputactionsd) is a separate system service and is left alone.
+
+CLIENT=/usr/bin/inputactions-client
+CLI=/usr/bin/inputactions
+TRAY="$HOME/.local/bin/inputactions-tray"
+CLIENT_PAT='^/usr/bin/inputactions-client$|^inputactions-client$'
+TRAY_PAT="^/usr/bin/python3 $TRAY$|^$TRAY$"
+
+is_client() { pgrep -f "$CLIENT_PAT" >/dev/null 2>&1; }
+is_tray() { pgrep -f "$TRAY_PAT" >/dev/null 2>&1; }
+
+notify() {
+    command -v notify-send >/dev/null 2>&1 || return 0
+    notify-send -a InputActions -t 3000 "$1" "$2" >/dev/null 2>&1 || true
+}
+
+wait_ready() {
+    # 最多等 5 秒，直到设备真正被客户端抓取
+    i=0
+    while [ "$i" -lt 50 ]; do
+        if "$CLI" devices list 2>/dev/null | grep -q 'grab: true'; then
+            return 0
+        fi
+        sleep 0.1
+        i=$((i + 1))
+    done
+    return 1
+}
+
+start() {
+    if ! is_client; then
+        notify "正在启动鼠标手势" "设备接管期间鼠标会短暂卡顿约 1 秒，请稍候…"
+        setsid nohup "$CLIENT" >/tmp/inputactions-client.log 2>&1 </dev/null &
+        if wait_ready; then
+            notify "鼠标手势已就绪" "现在可以按住右键画手势了"
+        fi
+    fi
+    if ! is_tray; then
+        setsid nohup "$TRAY" >/tmp/inputactions-tray.log 2>&1 </dev/null &
+    fi
+}
+
+stop() {
+    pkill -f "$TRAY_PAT" 2>/dev/null
+    pkill -f "$CLIENT_PAT" 2>/dev/null
+}
+
+case "${1:-toggle}" in
+    start)  start ;;
+    stop)   stop ;;
+    status) if is_tray && is_client; then echo running; else echo stopped; fi ;;
+    toggle)
+        if is_tray || is_client; then stop; else start; fi
+        ;;
+    *)
+        echo "usage: $0 {start|stop|toggle|status}" >&2
+        exit 2
+        ;;
+esac
