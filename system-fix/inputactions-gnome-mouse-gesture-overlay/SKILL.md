@@ -9,6 +9,11 @@ description: 在 Fedora（GNOME/Wayland）上安装 InputActions 鼠标笔画手
 
 验证环境：Fedora 44、GNOME 50.6 Wayland、InputActions standalone `d88c74b` / core `2beab8c`。
 
+## 相关仓库
+
+- 配套下游发行版（本 skill 的产物仓库）：<https://github.com/sherlocknieh/inputactions-gnome>
+- skill 集合仓库：<https://github.com/sherlocknieh/skills>
+
 ## 一键还原
 
 在装有本 skill 的机器上执行（把 `<skill-dir>` 换成 skill 的实际目录）：
