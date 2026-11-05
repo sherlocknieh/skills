@@ -1,0 +1,251 @@
+#!/usr/bin/python3
+"""InputActions 托盘开关。
+
+依赖: python3-gobject, libayatana-appindicator-gtk3, GNOME 的
+AppIndicator/KStatusNotifierItem 扩展（本机已启用）。
+
+状态保存在 ~/.local/state/inputactions-tray/enabled。
+"""
+
+import fcntl
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+import gi
+
+gi.require_version("Gtk", "3.0")
+gi.require_version("AyatanaAppIndicator3", "0.1")
+from gi.repository import Gio, GLib, Gtk  # noqa: E402
+from gi.repository import AyatanaAppIndicator3 as AppIndicator  # noqa: E402
+
+APP_ID = "inputactions-tray"
+CLI = "/usr/bin/inputactions" if os.path.exists("/usr/bin/inputactions") else "inputactions"
+CONFIG = Path.home() / ".config/inputactions/config.yaml"
+STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / APP_ID
+STATE_FILE = STATE_DIR / "enabled"
+
+ICON_ON = "inputactions-tray-on-symbolic"
+ICON_OFF = "inputactions-tray-off-symbolic"
+
+
+def cli(*args, timeout=5):
+    try:
+        return subprocess.run(
+            [CLI, *args], capture_output=True, text=True, timeout=timeout
+        )
+    except Exception:
+        return None
+
+
+def notify(title, body):
+    try:
+        subprocess.Popen(["notify-send", "-a", "InputActions", title, body])
+    except Exception:
+        pass
+
+
+class Tray:
+    def __init__(self):
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        self.enabled = self._load_state()
+        self._guard = False
+        self._pending = False
+        self._retries = 0
+
+        self.indicator = AppIndicator.Indicator.new(
+            APP_ID, ICON_ON, AppIndicator.IndicatorCategory.APPLICATION_STATUS
+        )
+        self.indicator.set_status(AppIndicator.IndicatorStatus.ACTIVE)
+        self.indicator.set_title("InputActions")
+
+        self._build_menu()
+        self._refresh()
+        self._apply(notify_user=False)
+
+        self._monitor = None
+        if CONFIG.exists():
+            self._monitor = Gio.File.new_for_path(str(CONFIG)).monitor_file(
+                Gio.FileMonitorFlags.NONE, None
+            )
+            self._monitor.connect("changed", self._on_config_changed)
+
+        # 客户端重启后重新应用暂停状态
+        self._bus = None
+        try:
+            self._bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+            Gio.bus_watch_name_on_connection(
+                self._bus,
+                "org.inputactions",
+                Gio.BusNameWatcherFlags.NONE,
+                self._on_client_appeared,
+                None,
+            )
+        except Exception:
+            self._bus = None
+
+    # ---------- state ----------
+
+    def _load_state(self):
+        try:
+            return STATE_FILE.read_text().strip() != "0"
+        except Exception:
+            return True
+
+    def _save_state(self):
+        try:
+            STATE_FILE.write_text("1" if self.enabled else "0")
+        except Exception:
+            pass
+
+    # ---------- UI ----------
+
+    def _build_menu(self):
+        self.menu = Gtk.Menu()
+
+        self.status_item = Gtk.MenuItem(label="")
+        self.status_item.set_sensitive(False)
+        self.menu.append(self.status_item)
+
+        self.check = Gtk.CheckMenuItem(label="启用/暂停")
+        self.check.connect("toggled", self._on_toggled)
+        self.menu.append(self.check)
+
+        self.menu.append(Gtk.SeparatorMenuItem())
+
+        reload_item = Gtk.MenuItem(label="重新加载配置")
+        reload_item.connect("activate", self._on_reload)
+        self.menu.append(reload_item)
+
+        edit_item = Gtk.MenuItem(label="打开配置文件")
+        edit_item.connect("activate", self._on_edit)
+        self.menu.append(edit_item)
+
+        self.menu.append(Gtk.SeparatorMenuItem())
+
+        quit_item = Gtk.MenuItem(label="退出")
+        quit_item.connect("activate", self._on_quit)
+        self.menu.append(quit_item)
+
+        self.menu.show_all()
+        self.indicator.set_menu(self.menu)
+
+    def _refresh(self):
+        self._guard = True
+        self.check.set_active(self.enabled)
+        self._guard = False
+        self.status_item.set_label("手势：已启用" if self.enabled else "手势：已暂停")
+        icon = ICON_ON if self.enabled else ICON_OFF
+        desc = "InputActions (enabled)" if self.enabled else "InputActions (disabled)"
+        self.indicator.set_icon_full(icon, desc)
+
+    # ---------- actions ----------
+
+    def _set_paused(self, paused):
+        """轻量暂停/恢复：只切客户端内存里的标志，不重载配置、不释放设备。"""
+        try:
+            bus = getattr(self, "_bus", None) or Gio.bus_get_sync(Gio.BusType.SESSION, None)
+            bus.call_sync(
+                "org.inputactions",
+                "/",
+                "org.inputactions",
+                "pause" if paused else "unpause",
+                None,
+                None,
+                Gio.DBusCallFlags.NONE,
+                1000,
+                None,
+            )
+            return True
+        except Exception:
+            return False
+
+    def _apply(self, notify_user=False):
+        """把当前状态同步给 InputActions，必要时重试（客户端可能还没起来）。"""
+        self._pending = True
+        ok = self._set_paused(not self.enabled)
+
+        if ok:
+            self._pending = False
+            self._retries = 0
+            if notify_user:
+                notify(
+                    "InputActions",
+                    "鼠标手势已启用" if self.enabled else "鼠标手势已暂停",
+                )
+        else:
+            self._retries += 1
+            if self._retries <= 20:
+                GLib.timeout_add_seconds(2, self._apply, notify_user and self._retries == 1)
+
+    def _on_toggled(self, item):
+        if self._guard:
+            return
+        self.enabled = item.get_active()
+        self._save_state()
+        self._refresh()
+        self._retries = 0
+        self._apply(notify_user=True)
+
+    def _on_reload(self, *_):
+        cli("config", "reload")
+        if not self.enabled:
+            # 配置重载会解除 suspend，稍后重新挂起
+            GLib.timeout_add(700, self._reapply_if_disabled)
+
+    def _reapply_if_disabled(self):
+        if not self.enabled:
+            self._apply(notify_user=False)
+        return False
+
+    def _on_edit(self, *_):
+        try:
+            subprocess.Popen(["xdg-open", str(CONFIG)])
+        except Exception:
+            pass
+
+    def _on_config_changed(self, _monitor, _file, _other, event):
+        if event in (
+            Gio.FileMonitorEvent.CHANGED,
+            Gio.FileMonitorEvent.CHANGES_DONE_HINT,
+            Gio.FileMonitorEvent.CREATED,
+            Gio.FileMonitorEvent.MOVED_IN,
+        ):
+            GLib.timeout_add(700, self._reapply_if_disabled)
+
+    def _on_client_appeared(self, _connection, _name, _owner):
+        if not self.enabled:
+            GLib.timeout_add(500, self._reapply_if_disabled)
+
+    def _on_quit(self, *_):
+        # 退出托盘时一并结束客户端，等于停掉整个用户态手势服务
+        try:
+            subprocess.run(
+                ["pkill", "-f", "^/usr/bin/inputactions-client$|^inputactions-client$"],
+                check=False,
+            )
+        except Exception:
+            pass
+        Gtk.main_quit()
+
+
+def acquire_lock():
+    lock_path = STATE_DIR / "tray.lock"
+    fd = open(lock_path, "w")
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        sys.exit(0)
+    return fd
+
+
+def main():
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    lock = acquire_lock()  # noqa: F841  保持 fd 不关闭
+    tray = Tray()  # noqa: F841
+    Gtk.main()
+
+
+if __name__ == "__main__":
+    main()

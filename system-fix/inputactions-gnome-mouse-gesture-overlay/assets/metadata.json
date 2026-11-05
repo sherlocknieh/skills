@@ -1,0 +1,7 @@
+{
+  "uuid": "inputactions-overlay@local",
+  "name": "InputActions Overlay",
+  "description": "Draws mouse stroke trails and action names for InputActions (GNOME replacement for the wlr-layer-shell overlay).",
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "version": 2
+}
