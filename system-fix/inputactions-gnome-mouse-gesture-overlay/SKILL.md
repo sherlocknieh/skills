@@ -77,6 +77,9 @@ pgrep -af 'inputactions-client|inputactions-tray'  # 两者都应在运行
 - 托盘「退出」：结束客户端 + 托盘。
 - 启动器 `InputActions`：`inputactions-service toggle`，真正启停整个用户态服务；首次启动约有 1 秒鼠标卡顿（evdev 抓取 + uinput 重放交接），启动时会弹通知说明。
 - `inputactions-service start|stop|toggle|status` 可脚本化控制。
+- 手动重启托盘时别在无 `DISPLAY`/`WAYLAND_DISPLAY` 的 shell 里直接起，用
+  `systemd-run --user --collect --unit=inputactions-tray /home/$USER/.local/bin/inputactions-tray`，
+  这样能继承用户管理器的 `WAYLAND_DISPLAY`、`XAUTHORITY` 等会话变量。
 
 ## 已知坑（参考，不需要手动处理）
 
@@ -87,7 +90,23 @@ pgrep -af 'inputactions-client|inputactions-tray'  # 两者都应在运行
 5. **标签一闪而过**：`endTriggersCustom` 先 `hide()` 再 `showLabel()`，按钮释放还会再触发一次 `hide()`；`hide()` 里不能清标签。
 6. **实时提示需要客户端补丁**：上游只在 `on: end` 匹配，补丁在笔画过程中每 2 个事件匹配一次并推送。
 7. **`stroke` 与 `swipe` 不兼容**：同时配置会两个都失效，本配置只用 stroke。
-8. **Input Remapper 冲突**：两者都做 evdev grab/uinput；配置里排除 `input-remapper` 设备，仍冲突就停 `input-remapper.service`。
+8. **Input Remapper 共存**：两者都做 evdev grab/uinput，抢不到设备就整组失败。
+   - 症状：Input Remapper GUI 底部 `Failed to apply preset "xxx"`；日志 `Cannot grab /dev/input/eventN, it is possibly in use` / `[Errno 16] Device or resource busy` / `Did not grab any device`。根因是 InputActions 已独占 grab 物理设备。
+   - 预设要建在 **`"<设备名> (InputActions output)"`** 这张虚拟设备卡上，**不要**建在物理设备上。并且 `input_combination` 必须带该 output 节点的 `origin_hash`（= `md5(str(device.capabilities(absinfo=False)) + device.name)`，可用 `inputremapper.utils.get_device_hash` 算）；否则 input-remapper 会连带抓同组的 `(InputActions internal)` 节点（被 InputActions 占着）而整体失败。
+   - InputActions 侧 grab 规则要加 `- $name contains InputActions`（见 `device_rules`）：Input Remapper 的转发设备沿用源设备名，只有 `phys` 变成 `input-remapper`，不排除会被再抓一层，变成双层转发。
+   - 非 root 的 `input-remapper-control` 列不到这些虚拟设备（节点属主 `root:inputactions` + ACL，`input` 组只有 `r-x`），会报 `Device ... is unknown`；GUI 的设备列表来自 root daemon，所以 GUI 里反而看得到卡片。命令行启动用 `sudo -A input-remapper-control --config-dir ~/.config/input-remapper-2 --command start --device "<设备名> (InputActions output)" --preset <预设>`。
+   - daemon 的 autoload 配置是缓存的：改完 `config.json` 要触发一次 `set_config_dir`（跑一次 control 即可）或重启 `input-remapper.service`；另外 `autoload_history` 会短时间内拒绝重复 autoload（日志 `Not autoloading the same preset ... again`），属正常。
+   - 代价是多一次 uinput 转发（延迟略增）。**能不用链式就别用**：单个按键映射直接用 InputActions 的 `mouse.press` 触发器更稳，例如中键 → `SPACE+ENTER`：
+     ```yaml
+     mouse:
+       gestures:
+         - type: press
+           mouse_buttons: [ middle ]
+           instant: true   # 否则默认等 200ms，快速点击会被当成普通中键透传
+           actions:
+             - input:
+                 - keyboard: [ SPACE+ENTER ]
+     ```
 9. **`record-stroke` 与合成输入**：录制的 base64 依赖设备加速度曲线，用 uinput 合成轨迹录出来的笔画匹配不上；用真实鼠标录。
 10. **GNOME 必须注销**：新扩展不会被扫描，`ReloadExtension` 已废弃、`Eval` 默认禁用，无法绕过。
 11. **`suspend` 很重**：它走 `load({empty:true})`，会重新解析配置、重建 handler、释放/重抓设备、重启 overlay 进程；日常暂停用托盘的 `pause`/`unpause`。
@@ -95,6 +114,7 @@ pgrep -af 'inputactions-client|inputactions-tray'  # 两者都应在运行
 13. **最大化/全屏窗口上轨迹消失**：Mutter 的 direct scanout（unredirect）绕过合成器；显示 overlay 时调用 `global.compositor.disable_unredirect()`，轨迹/标签消失后 `enable_unredirect()`（引用计数，成对调用）。
 14. **长动作名被省略号截断**：`St.Label.set_text()` 后立刻取 preferred width 可能拿到旧缓存；文本变化时销毁重建标签。
 15. **斜向角度门限**：斜向模板只接受 45°±`direction_tolerance` 的直线（默认 ±18°）；略斜的水平/垂直会回落到直向。容差在 `config.yaml` 的 `overlay.mouse_stroke.direction_tolerance`（单位：度），运行时由 `ConfigLoader` 读入 `GlobalConfig`，`Stroke::directionMatches` 默认取该值，改配置后 `inputactions config reload` 即生效，无需重编译。非法值仍可能被 `config issues` 报出。
+16. **托盘「打开配置文件」无效**：通常不是托盘代码的问题。`application/yaml` 没有默认关联时 `xdg-open` 会挑一个错的 App（实测挑到 Android Studio），启动即因缺 X server 静默退出；旧实现又用 `except Exception: pass` 把错误吞了，所以看起来“没反应”。修法：`xdg-mime default com.microsoft.VSCode.desktop application/yaml` 补关联；代码改为先 `Gio.AppInfo.launch_default_for_uri`，再按 `gnome-text-editor`/`gedit`/`kate`/`xed`/`code`/`nano` 兜底，全失败就 `notify-send`。另外托盘必须跑在有 `WAYLAND_DISPLAY`/`XAUTHORITY` 的环境里（autostart 或 `systemd-run --user` 托管），否则它拉起的子进程会报 `Authorization required` / `Missing X server or $DISPLAY`。
 
 ## 迭代
 
