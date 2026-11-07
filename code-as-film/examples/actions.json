@@ -1,0 +1,13 @@
+[
+  { "at": 400,  "type": "move", "x": 620, "y": 300, "ms": 400 },
+  { "at": 900,  "type": "click", "selector": "#new" },
+  { "at": 1200, "type": "type", "text": "把标题动效调慢一点", "perChar": 60 },
+  { "at": 2400, "type": "click", "selector": "#add" },
+  { "at": 2900, "type": "click", "selector": "#new" },
+  { "at": 3200, "type": "type", "text": "补一条 16:9 竖屏版本", "perChar": 45 },
+  { "at": 4300, "type": "key", "key": "Enter" },
+  { "at": 4900, "type": "click", "selector": "li.task:nth-child(2) .box" },
+  { "at": 5500, "type": "move", "x": 900, "y": 640, "ms": 500 },
+  { "at": 6100, "type": "scroll", "dy": 240 },
+  { "at": 6700, "type": "wait", "ms": 600 }
+]
