@@ -64,7 +64,11 @@ sudo --askpass dnf install -y nautilus-python
 mkdir -p ~/.local/share/nautilus-python/extensions
 cp <本技能目录>/open-in-vscode.py ~/.local/share/nautilus-python/extensions/open-in-vscode.py
 cp <本技能目录>/open-in-opencode.py ~/.local/share/nautilus-python/extensions/open-in-opencode.py
+cp <本技能目录>/analyze-disk-usage.py ~/.local/share/nautilus-python/extensions/analyze-disk-usage.py
 ```
+
+> `analyze-disk-usage.py` 是同一机制的「分析磁盘占用」项：文件夹图标右键或文件夹内空白右键时，
+> 以 `baobab <目录>` 打开 GNOME 磁盘占用分析器（多选文件夹会各开一个窗口）。
 
 脚本内容见本目录 `open-in-vscode.py` / `open-in-opencode.py`。要点：
 - 仅当所选全部为文件夹时显示，菜单标签「用 VSCode 打开」/「用 OpenCode 打开」。
@@ -328,13 +332,13 @@ msgmerge -q installed.po ding.pot -o merged.po && msgattrib --untranslated --no-
 | 改动 | 位置 |
 |---|---|
 | DING 扩展 | `~/.local/share/gnome-shell/extensions/ding@rastersoft.com/` |
-| Nautilus 扩展 | `~/.local/share/nautilus-python/extensions/open-in-vscode.py`、`open-in-opencode.py` |
+| Nautilus 扩展 | `~/.local/share/nautilus-python/extensions/open-in-vscode.py`、`open-in-opencode.py`、`analyze-disk-usage.py` |
 | DING 补丁 | 上述 `app/fileItemMenu.js`、`app/desktopMenu.js`、`app/desktopIconsUtil.js`（备份建议存 `/tmp/opencode/ding-backup/`） |
 | DING 中文翻译 | `.../ding@rastersoft.com/locale/zh_CN/LC_MESSAGES/ding.mo`（成品在技能 `ding-i18n/`，原文件备份 `ding-i18n/ding.mo.orig.bak`） |
 | 文本模板 | `~/模板/新建文本文件.txt` |
 
 恢复：
-- 去掉 Nautilus 项：`rm ~/.local/share/nautilus-python/extensions/open-in-{vscode,opencode}.py && nautilus -q`
+- 去掉 Nautilus 项：`rm ~/.local/share/nautilus-python/extensions/open-in-{vscode,opencode}.py ~/.local/share/nautilus-python/extensions/analyze-disk-usage.py && nautilus -q`
 - 去掉桌面 VSCode/OpenCode 项：还原 `fileItemMenu.js`/`desktopMenu.js`/`desktopIconsUtil.js` 备份，杀 DING 进程。
 - 去掉文本模板：`rm ~/模板/新建文本文件.txt`
 - 还原中文翻译：`cp .../ding-i18n/ding.mo.orig.bak <扩展>/locale/zh_CN/LC_MESSAGES/ding.mo`
