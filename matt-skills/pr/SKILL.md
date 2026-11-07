@@ -1,6 +1,6 @@
 ---
 name: pr
-description: "Use when writing a PR body."
+description: "适用于编写 PR 描述正文时。"
 metadata:
   credits:
     skill: show-me

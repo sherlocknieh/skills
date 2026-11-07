@@ -1,6 +1,6 @@
 ---
 name: wayfinder
-description: Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on your issue tracker, and resolve them one at a time until the way to the destination is clear.
+description: "把一大块工作（超过单个代理会话能承载的量）规划成 issue 跟踪器上的决策工单共享地图，逐个解决，直到通往目标的路径清晰。"
 disable-model-invocation: true
 ---
 

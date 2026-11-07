@@ -1,6 +1,6 @@
 ---
 name: opencode-backup
-description: OpenCode 配置备份/恢复: 备份和恢复 OpenCode的配置文件, 全局规则, 用户设置
+description: "OpenCode 配置备份/恢复：备份和恢复 OpenCode 的配置文件、全局规则与用户设置"
 ---
 
 # 备份配置文件

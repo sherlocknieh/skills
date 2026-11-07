@@ -1,6 +1,6 @@
 ---
 name: to-tickets
-description: Break a plan, spec, or the current conversation into a set of tracer-bullet tickets, each declaring its blocking edges, published to the configured tracker (edges as text in one file per ticket locally, or native blocking links on a real tracker).
+description: "把计划、规格或当前对话拆成一组「曳光弹」工单，每个工单声明其阻塞依赖，并发布到已配置的跟踪器（本地为每个工单一个文件、依赖以文本表示；真实跟踪器则使用原生阻塞链接）。"
 disable-model-invocation: true
 ---
 

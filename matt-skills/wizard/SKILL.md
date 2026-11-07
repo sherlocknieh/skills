@@ -1,6 +1,6 @@
 ---
 name: wizard
-description: Generate an interactive bash wizard that walks a human through steps only they can perform. Use when provisioning infrastructure, setting up credentials or CI secrets, walking an unfamiliar third-party dashboard, or running a one-off migration or cutover. Don't invoke this for steps the agent can perform itself.
+description: "生成一个交互式 bash 向导，引导用户完成只有他们本人才能执行的步骤。适用于配置基础设施、设置凭据或 CI 密钥、走查陌生的第三方控制台，或执行一次性迁移/切换时。不要用于代理自己就能完成的步骤。"
 ---
 
 # Wizard

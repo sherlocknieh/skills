@@ -1,6 +1,6 @@
 ---
 name: implement-spec
-description: "Implement the result of /to-spec and /to-tickets in code."
+description: "用代码实现 /to-spec 与 /to-tickets 的成果。"
 disable-model-invocation: true
 ---
 

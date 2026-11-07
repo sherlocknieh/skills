@@ -1,6 +1,6 @@
 ---
 name: pdf-toc-bookmarks
-description: 扫描 PDF（尤其是纯图片/无文字层的扫描书）的目录页，提取章节/页码，生成 PDF 书签大纲(outline/bookmarks)。适用于用户说“给 PDF 加目录/导航/书签”“扫描文档的目录页生成大纲”“PDF 没有书签/书签是错的”“图片版 PDF 加书签”。关键词：PDF、目录、大纲、书签、outline、bookmarks、扫描书、图片 PDF、无文字层、pdftotext 为空、pikepdf、pdftoppm、页码偏移。Use when asked to add a clickable table of contents / outline to a PDF, especially scanned image-only PDFs.
+description: 扫描 PDF（尤其是纯图片/无文字层的扫描书）的目录页，提取章节/页码，生成 PDF 书签大纲(outline/bookmarks)。适用于用户说“给 PDF 加目录/导航/书签”“扫描文档的目录页生成大纲”“PDF 没有书签/书签是错的”“图片版 PDF 加书签”。关键词：PDF、目录、大纲、书签、outline、bookmarks、扫描书、图片 PDF、无文字层、pdftotext 为空、pikepdf、pdftoppm、页码偏移。适用于需要给 PDF（尤其是扫描版图片 PDF）添加可点击目录/大纲时。
 ---
 
 # PDF 目录 → 书签大纲

@@ -1,6 +1,6 @@
 ---
 name: opencode-init
-description: OpenCode 初始化: 添加全局规则, 执行一些技能, 修改用户设置
+description: "OpenCode 初始化：添加全局规则、执行一些技能、修改用户设置"
 ---
 
 

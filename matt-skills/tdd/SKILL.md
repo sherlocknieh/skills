@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
+description: "测试驱动开发。适用于用户想以测试先行方式开发功能或修复 bug、提到「红-绿-重构」，或想要集成测试时。"
 ---
 
 # Test-Driven Development

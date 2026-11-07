@@ -1,6 +1,6 @@
 ---
 name: codebase-design
-description: Shared vocabulary for designing deep modules. Use when the user wants to design or improve a module's interface, find deepening opportunities, decide where a seam goes, make code more testable or AI-navigable, or when another skill needs the deep-module vocabulary.
+description: "设计深模块的共享词汇。适用于用户想设计或改进模块接口、寻找深化机会、确定接缝位置、让代码更易测试或更利于 AI 导航，或其他技能需要深模块词汇时。"
 ---
 
 # Codebase Design

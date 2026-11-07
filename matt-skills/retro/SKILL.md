@@ -1,6 +1,6 @@
 ---
 name: retro
-description: "Conduct a retrospective on a coding session."
+description: "对一次编码会话进行复盘。"
 disable-model-invocation: true
 ---
 

@@ -2,5 +2,6 @@
   "$schema": "https://opencode.ai/v2/cli.json",
   "prompt": {
     "imagePreview": true
-  }
+  },
+  "plugins": ["/home/who/.config/opencode/cny-cost"]
 }

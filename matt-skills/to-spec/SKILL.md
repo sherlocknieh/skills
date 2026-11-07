@@ -1,6 +1,6 @@
 ---
 name: to-spec
-description: "Turn the current conversation into a spec and publish it to the project issue tracker: no interview, just synthesis of what you've already discussed."
+description: "把当前对话整理成规格并发布到项目 issue 跟踪器：不做访谈，只综合已经讨论过的内容。"
 disable-model-invocation: true
 ---
 

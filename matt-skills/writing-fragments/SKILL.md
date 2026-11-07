@@ -1,6 +1,6 @@
 ---
 name: writing-fragments
-description: "Writing, explore: mine raw fragments, no structure yet."
+description: "写作·发散：挖掘原始片段，暂不组织结构。"
 disable-model-invocation: true
 ---
 

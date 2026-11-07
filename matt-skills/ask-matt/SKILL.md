@@ -1,6 +1,6 @@
 ---
 name: ask-matt
-description: Ask which skill or flow fits your situation. A router over the skills in this repo.
+description: "判断当前情境适合哪个技能或流程，是本仓库技能的总入口路由器。"
 disable-model-invocation: true
 ---
 
