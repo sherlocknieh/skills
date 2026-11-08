@@ -192,6 +192,52 @@ curl -fsS 'https://dns.alidns.com/resolve?name=sherlocknieh.duckdns.org&type=A'
 # Answer 里的 data 应等于上面的公网 IP
 ```
 
+### 6.1 热点内网的固定名字
+
+手机开热点、电脑连热点时，Android 每次开启会随机一个 `/24` 网段（实测出现过
+`192.168.107/207/235/240.x`），网关随之变成 `X.237`；只有主机段按 MAC 固定为 `.108`。
+所以**静态 IP 无效**，第三段一变就不在同一网段。解决办法是用一个独立的 DuckDNS 子域
+存放局域网 IP，名字永远不变，解析走公网 DNS、连接走热点直连。
+
+子域必须与 `DOMAIN` 不同：两者相同会互相覆盖，公网记录会被写成 `192.168.x.x`。
+
+```bash
+# 先在 duckdns.org 新建子域 localhotspot，然后把三项写进同一份配置
+sudo sh -c 'umask 077; printf "DOMAIN=sherlocknieh\nLAN_DOMAIN=localhotspot\nTOKEN=<TOKEN>\n" > /etc/duckdns/duckdns.conf'
+
+sudo install -m 755 <本技能目录>/scripts/duckdns-lan-update.sh /usr/local/bin/duckdns-lan-update.sh
+sudo install -m 755 <本技能目录>/scripts/nm-dispatcher-90-duckdns /etc/NetworkManager/dispatcher.d/90-duckdns
+sudo restorecon /usr/local/bin/duckdns-lan-update.sh /etc/NetworkManager/dispatcher.d/90-duckdns
+
+sudo rm -f /var/lib/duckdns-lan/last-ip      # 状态键是「子域 + IP」，换子域必须清
+sudo /usr/local/bin/duckdns-lan-update.sh wlp0s20f3
+```
+
+分派脚本监听 Wi-Fi 的 `up` / `dhcp4-change`：异步启动 `duckdns.service` 刷新公网记录，
+同时同步调用内网脚本刷新局域网记录，所以两条记录都不再依赖 5 分钟定时器。
+
+**完成标准**：
+
+```bash
+journalctl -t duckdns-lan -n 3
+# 期望：domain=localhotspot ip=<局域网IP> result=OK <局域网IP>  UPDATED
+
+curl -fsS -H 'accept: application/dns-json' \
+  'https://1.1.1.1/dns-query?name=localhotspot.duckdns.org&type=A'
+# data 应等于 ip -4 addr show wlp0s20f3 的地址
+
+curl -fsS -H 'accept: application/dns-json' \
+  'https://1.1.1.1/dns-query?name=sherlocknieh.duckdns.org&type=A'
+# data 应仍是公网 IP，证明两条记录没打架
+```
+
+注意：
+
+- DuckDNS 接受私有地址；AliDNS、DNSPod 实测都不过滤该答案。
+- TTL 60 秒：手机换网后第一次连不上，等一会儿或重开连接。
+- 手机不在这台热点上时，该名字解析到一个不可达私有地址，属正常。
+- 换子域后如果更新被静默跳过，先删 `last-ip`：状态只比 IP 的旧写法会漏推。
+
 ## 7. Tailscale（备用路径）
 
 ```bash

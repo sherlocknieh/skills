@@ -159,6 +159,34 @@ else
   warn "Tailscale 未连接"
 fi
 
+sec "4. 热点内网：局域网固定名字（可选层）"
+
+LAN_DOMAIN="${RDP_LAN_DOMAIN:-localhotspot.duckdns.org}"
+if [ -x /etc/NetworkManager/dispatcher.d/90-duckdns ]; then
+  ok "NetworkManager 分派脚本已安装"
+else
+  warn "分派脚本缺失：网络变化不会自动刷新内网记录（见 rebuild 6.1）"
+fi
+
+wlan_if=$(nmcli -g GENERAL.DEVICE,GENERAL.TYPE device status 2>/dev/null \
+  | awk -F: '$2=="wifi"{print $1; exit}')
+[ -n "${wlan_if:-}" ] || wlan_if=wlp0s20f3
+lan_ip=$(ip -4 -o addr show dev "$wlan_if" scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -1)
+if [ -n "$lan_ip" ]; then
+  lan_doh=$(curl -fsS --max-time 10 \
+    "https://dns.alidns.com/resolve?name=${LAN_DOMAIN}&type=A" 2>/dev/null \
+    | python3 -c 'import sys,json;d=json.load(sys.stdin);print(" ".join(a["data"] for a in d.get("Answer",[]) if a.get("type")==1))' 2>/dev/null)
+  info "本机局域网：$lan_ip"
+  info "$LAN_DOMAIN → ${lan_doh:-查询失败}"
+  if [ "$lan_doh" = "$lan_ip" ]; then
+    ok "内网名字指向本机"
+  else
+    warn "内网名字未指向本机（TTL 60s；或看 journalctl -t duckdns-lan）"
+  fi
+else
+  warn "无线网卡 $wlan_if 没有 IPv4"
+fi
+
 echo
 if [ "$FAILED" -eq 0 ]; then
   printf '%s体检通过%s\n' "$G" "$N"

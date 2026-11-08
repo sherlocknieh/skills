@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# 负责在网络变化时立刻刷新 DuckDNS：公网记录交给 duckdns.service，内网记录交给 duckdns-lan-update.sh。
+# 安装位置：/etc/NetworkManager/dispatcher.d/90-duckdns（文件名不带扩展名，root 所有，755）。
+# 上游：NetworkManager 在接口状态变化时以「<接口> <事件>」调用；下游见上面两行。
+IFACE=${1:-}
+ACTION=${2:-}
+
+# 只在拿到/刷新地址时动作，down、connectivity-change 等事件忽略
+case "$ACTION" in
+  up|dhcp4-change) ;;
+  *) exit 0 ;;
+esac
+
+# 只关心 Wi-Fi：热点和家宽都在无线网卡上，过滤掉有线、VPN 的重复事件
+TYPE=$(/usr/bin/nmcli -g GENERAL.TYPE device show "$IFACE" 2>/dev/null)
+[ "$TYPE" = "wifi" ] || exit 0
+
+# 公网 IP 需要外网探测，异步触发，避免拖住 NetworkManager 的分派流程
+/usr/bin/systemctl --no-block start duckdns.service >/dev/null 2>&1 || true
+
+# 局域网 IP 直接从网卡读，立即更新；失败也不影响网络状态
+/usr/local/bin/duckdns-lan-update.sh "$IFACE" >/dev/null 2>&1 || true

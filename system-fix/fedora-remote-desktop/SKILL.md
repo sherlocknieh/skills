@@ -1,6 +1,6 @@
 ---
 name: fedora-remote-desktop
-description: 维护 Fedora 44 / GNOME 50 (Wayland) 的远程桌面链路：GNOME RDP + 锁屏不断连扩展 + 路由器端口转发 + DuckDNS + Tailscale。适用于远程桌面连不上、锁屏后断连、连上黑屏、外网很慢、域名解析异常、公网 IP 变了，以及重建或回滚整套配置。关键词：远程桌面、RDP、3389、grdctl、gnome-remote-desktop、allowlockedremotedesktop、DuckDNS、端口转发、Tailscale、xfreerdp、锁屏断连。
+description: 维护 Fedora 44 / GNOME 50 (Wayland) 的远程桌面链路：GNOME RDP + 锁屏不断连扩展 + 路由器端口转发 + DuckDNS + Tailscale。适用于远程桌面连不上、锁屏后断连、连上黑屏、外网很慢、域名解析异常、公网 IP 变了、手机开热点后局域网地址每次重连都变，以及重建或回滚整套配置。关键词：远程桌面、RDP、3389、grdctl、gnome-remote-desktop、allowlockedremotedesktop、DuckDNS、端口转发、Tailscale、xfreerdp、锁屏断连、手机热点、局域网固定域名。
 ---
 
 # Fedora 远程桌面
@@ -32,6 +32,7 @@ description: 维护 Fedora 44 / GNOME 50 (Wayland) 的远程桌面链路：GNOME
 | 用户 | `who` |
 | 局域网 | `192.168.66.240:3389` |
 | 外网 | `sherlocknieh.duckdns.org:54389`（PPPoE 动态 IP，**不要记 IP**） |
+| 热点内网 | `localhotspot.duckdns.org:3389`（存局域网 IP，换网段后由分派脚本自动更新） |
 | Tailscale | `100.80.222.65:3389` |
 | RDP 凭据 | 用户名 `who` + RDP 专用密码（与系统密码是两套，本文件不记录） |
 | TLS 指纹 | `48:D1:58:D2:2E:4D:D4:98:8A:72:B3:AF:25:AE:D7:D9:57:D4:47:C1:95:8D:C2:03:29:BE:53:D4:53:46:D7:F9` |
@@ -50,13 +51,14 @@ description: 维护 Fedora 44 / GNOME 50 (Wayland) 的远程桌面链路：GNOME
 | 认证失败 | `grdctl status` | 改的是 RDP 凭据，不是系统密码：`grdctl rdp set-credentials who '<新密码>'` |
 | 能连但黑屏 | 锁屏/息屏状态 | 屏幕被关掉时抓不到画面；临时 `idle-delay 0` 验证 |
 | 外网很慢（300ms+） | Tailscale 路径 | 手机流量走了 DERP 中继，改用公网 `duckdns:54389` |
+| 热点重连后局域网地址变了 | `journalctl -t duckdns-lan` | 手机端改用 `localhotspot.duckdns.org:3389`，不要记 IP |
 | 重启后连不上 | 是否存在登录会话 | 这是“远程协助”模式，需先有图形会话；见 `reference/troubleshooting.md` 的已知限制 |
 
 深入步骤见 [`reference/troubleshooting.md`](reference/troubleshooting.md)。
 
 ## 4. 重建与回滚
 
-从零搭建整套配置（RDP、证书、扩展、锁屏策略、firewalld、路由器、DuckDNS、Tailscale）与逐项回滚，见 [`reference/rebuild.md`](reference/rebuild.md)。DuckDNS 更新脚本已作为 [`scripts/duckdns-update.sh`](scripts/duckdns-update.sh) 附带。
+从零搭建整套配置（RDP、证书、扩展、锁屏策略、firewalld、路由器、DuckDNS、Tailscale）与逐项回滚，见 [`reference/rebuild.md`](reference/rebuild.md)。DuckDNS 更新脚本已作为 [`scripts/duckdns-update.sh`](scripts/duckdns-update.sh) 附带；热点内网的固定名字见同文件 6.1，脚本为 [`scripts/duckdns-lan-update.sh`](scripts/duckdns-lan-update.sh) 与 [`scripts/nm-dispatcher-90-duckdns`](scripts/nm-dispatcher-90-duckdns)。
 
 ## 5. 边界
 

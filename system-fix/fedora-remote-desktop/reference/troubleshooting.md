@@ -146,6 +146,7 @@ sudo loginctl unlock-session <ID>
 | 路径 | 地址 | 适用 |
 |---|---|---|
 | 局域网 | `192.168.66.240:3389` | 同一 Wi-Fi，最快 |
+| 热点内网 | `localhotspot.duckdns.org:3389` | 手机开热点、电脑连热点；名字不变，IP 随网段自动更新 |
 | 公网 | `sherlocknieh.duckdns.org:54389` | 任意网络，手机流量首选 |
 | Tailscale | `100.80.222.65:3389` | 公网端口不可用时的备用 |
 
