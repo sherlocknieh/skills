@@ -1,0 +1,15 @@
+# 目的：随图形会话常驻监听 GNOME 解锁事件，解锁即触发一次公网 IP 上传。
+# 上游：gnome-session.target（登录图形会话时启动）；下游：duckdns-unlock-watch.sh。
+[Unit]
+Description=Refresh DuckDNS record right after GNOME unlock
+After=gnome-session.target
+PartOf=gnome-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/duckdns-unlock-watch.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=gnome-session.target

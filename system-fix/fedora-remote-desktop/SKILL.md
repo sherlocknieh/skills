@@ -51,6 +51,8 @@ description: 维护 Fedora 44 / GNOME 50 (Wayland) 的远程桌面链路：GNOME
 | 认证失败 | `grdctl status` | 改的是 RDP 凭据，不是系统密码：`grdctl rdp set-credentials who '<新密码>'` |
 | 能连但黑屏 | 锁屏/息屏状态 | 屏幕被关掉时抓不到画面；临时 `idle-delay 0` 验证 |
 | 外网很慢（300ms+） | Tailscale 路径 | 手机流量走了 DERP 中继，改用公网 `duckdns:54389` |
+| 解锁后要等几分钟才能连 | 体检第 3 节 `duckdns-unlock` | 按 rebuild 6.2 装解锁监听；看 `journalctl -t duckdns-unlock` |
+| 空闲/合盖后失联（电脑睡了） | 睡眠策略 | 按 rebuild 6.3 取消自动挂起 |
 | 热点重连后局域网地址变了 | `journalctl -t duckdns-lan` | 手机端改用 `localhotspot.duckdns.org:3389`，不要记 IP |
 | 重启后连不上 | 是否存在登录会话 | 这是“远程协助”模式，需先有图形会话；见 `reference/troubleshooting.md` 的已知限制 |
 

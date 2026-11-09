@@ -238,6 +238,68 @@ curl -fsS -H 'accept: application/dns-json' \
 - 手机不在这台热点上时，该名字解析到一个不可达私有地址，属正常。
 - 换子域后如果更新被静默跳过，先删 `last-ip`：状态只比 IP 的旧写法会漏推。
 
+### 6.2 解锁即刷新公网 IP
+
+定时器只是兜底（5 分钟）。笔记本锁屏期间公网 IP 变了，解锁后最多要等 5 分钟才能连。
+用用户级 systemd 服务监听会话总线的 `org.gnome.ScreenSaver.ActiveChanged`，解锁瞬间推一次：
+
+```bash
+# 1) 监听脚本与用户单元
+install -D -m 755 <本技能目录>/scripts/duckdns-unlock-watch.sh ~/.local/bin/duckdns-unlock-watch.sh
+install -D -m 644 <本技能目录>/scripts/duckdns-unlock.service ~/.config/systemd/user/duckdns-unlock.service
+
+# 2) 允许 who 免密触发更新脚本（脚本自己探测真实 IP，不接受参数）
+printf '%s ALL=(root) NOPASSWD: /usr/local/bin/duckdns-update.sh\n' who |
+  sudo tee /etc/sudoers.d/duckdns-unlock >/dev/null
+sudo chmod 0440 /etc/sudoers.d/duckdns-unlock
+sudo visudo -cf /etc/sudoers.d/duckdns-unlock
+
+# 3) 启用
+systemctl --user daemon-reload
+systemctl --user enable --now duckdns-unlock.service
+```
+
+关键点：
+
+- `gdbus monitor` 的输出被 `stdbuf -oL` 强制行缓冲；否则信号攒在 4KB 管道缓冲里，
+  解锁后迟迟不触发。
+- 单元挂在 `gnome-session.target`：gnome-shell 起来后才有 `org.gnome.ScreenSaver`；
+  `Restart=always` 兜住 Shell 重启。
+- 解锁后网络可能还没就绪，脚本最多重试 3 次（间隔 5 秒）；仍失败就等定时器。
+- 免密范围只有 `duckdns-update.sh` 一条命令；它只读取公网 IP，不接收参数。
+
+**完成标准**：
+
+```bash
+systemctl --user is-active duckdns-unlock.service   # active
+journalctl -t duckdns-unlock -n 3                   # 解锁后出现 unlock: ip=... result=OK
+```
+
+### 6.3 取消自动睡眠
+
+远程机一睡，外网直接失联。两处都要关：
+
+```bash
+# GNOME 空闲挂起（插电与电池）
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
+
+# 合盖：插电/扩展坞不睡（电池合盖保留原策略，避免装包里过热）
+sudo install -d -m 0755 /etc/systemd/logind.conf.d
+printf '[Login]\nHandleLidSwitchExternalPower=ignore\nHandleLidSwitchDocked=ignore\n' |
+  sudo tee /etc/systemd/logind.conf.d/10-remote-desktop.conf >/dev/null
+sudo systemctl reload systemd-logind
+```
+
+彻底禁止一切挂起（连菜单里的“挂起”也会失效，一般不需要）：
+
+```bash
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+```
+
+息屏（`org.gnome.desktop.session idle-delay`，默认 900 秒）与挂起是两码事，保持原样；
+若远程连上黑屏，见 troubleshooting 1.3。
+
 ## 7. Tailscale（备用路径）
 
 ```bash
@@ -280,6 +342,14 @@ rm -rf ~/.local/share/gnome-shell/extensions/allowlockedremotedesktop@kamens.us
 gsettings reset org.gnome.desktop.screensaver lock-enabled
 gsettings reset org.gnome.desktop.session idle-delay
 gsettings reset org.gnome.desktop.screensaver lock-delay
+
+# 6) 解锁即刷新与睡眠策略
+systemctl --user disable --now duckdns-unlock.service
+rm -f ~/.local/bin/duckdns-unlock-watch.sh ~/.config/systemd/user/duckdns-unlock.service
+sudo rm -f /etc/sudoers.d/duckdns-unlock /etc/systemd/logind.conf.d/10-remote-desktop.conf
+sudo systemctl reload systemd-logind
+gsettings reset org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type
+gsettings reset org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type
 ```
 
 Tailscale 通常还有别的用途，不随本配置回滚。

@@ -111,6 +111,13 @@ fi
 next=$(systemctl list-timers duckdns.timer --no-legend 2>/dev/null | awk 'NF {print $1" "$2" "$3; exit}')
 [ -n "$next" ] && info "下次触发：$next"
 
+# 解锁即刷新：用户级监听服务。挂了只影响“立即”，定时器仍会兜底，所以记 WARN。
+if systemctl --user is-active --quiet duckdns-unlock.service 2>/dev/null; then
+  ok "duckdns-unlock.service active（解锁即刷新）"
+else
+  warn "duckdns-unlock.service 未运行：解锁后要等定时器（systemctl --user status duckdns-unlock.service）"
+fi
+
 last=$(journalctl -u duckdns.service -n 40 --no-pager 2>/dev/null | grep -o 'ip=.*' | tail -1)
 if [ -n "$last" ]; then
   info "最近一次：$last"
