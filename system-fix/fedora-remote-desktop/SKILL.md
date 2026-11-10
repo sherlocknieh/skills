@@ -30,13 +30,16 @@ description: 维护 Fedora 44 / GNOME 50 (Wayland) 的远程桌面链路：GNOME
 | 项 | 值 |
 |---|---|
 | 用户 | `who` |
-| 局域网 | `192.168.66.240:3389` |
-| 外网 | `sherlocknieh.duckdns.org:54389`（PPPoE 动态 IP，**不要记 IP**） |
+| 局域网·接当前桌面 | `192.168.66.240:3389`（用户级 grd，随图形会话存活） |
+| 局域网·登录界面/无人登录 | `192.168.66.240:33890`（系统级 remote login，常驻） |
+| 外网·接当前桌面 | `sherlocknieh.duckdns.org:54389 → 3389`（PPPoE 动态 IP，**不要记 IP**） |
+| 外网·登录界面/无人登录 | `sherlocknieh.duckdns.org:54390 → 33890` |
 | 热点内网 | `localhotspot.duckdns.org:3389`（存局域网 IP，换网段后由分派脚本自动更新） |
-| Tailscale | `100.80.222.65:3389` |
+| Tailscale | `100.80.222.65:3389`、`:33890` |
 | RDP 凭据 | 用户名 `who` + RDP 专用密码（与系统密码是两套，本文件不记录） |
-| TLS 指纹 | `48:D1:58:D2:2E:4D:D4:98:8A:72:B3:AF:25:AE:D7:D9:57:D4:47:C1:95:8D:C2:03:29:BE:53:D4:53:46:D7:F9` |
-| 路由器 | `http://192.168.66.1`（NRadio C2000-410，LuCI） |
+| TLS 指纹·3389 | `48:D1:58:D2:2E:4D:D4:98:8A:72:B3:AF:25:AE:D7:D9:57:D4:47:C1:95:8D:C2:03:29:BE:53:D4:53:46:D7:F9` |
+| TLS 指纹·33890 | `15:B4:C3:2B:7D:E1:3F:D5:44:DE:49:77:04:C1:75:84:4B:7D:3F:38:E5:18:03:44:AF:A2:6A:EA:17:8E:A6:C9` |
+| 路由器 | `http://192.168.66.1`（NRadio C2000-410，LuCI；登录用户名 `root`，页面上隐藏了该输入框） |
 | 客户端 | Windows App、Remmina、aFreeRDP、`xfreerdp` |
 
 自签证书首次连接会告警，核对指纹后接受即可。
@@ -54,7 +57,8 @@ description: 维护 Fedora 44 / GNOME 50 (Wayland) 的远程桌面链路：GNOME
 | 解锁后要等几分钟才能连 | 体检第 3 节 `duckdns-unlock` | 按 rebuild 6.2 装解锁监听；看 `journalctl -t duckdns-unlock` |
 | 空闲/合盖后失联（电脑睡了） | 睡眠策略 | 按 rebuild 6.3 取消自动挂起 |
 | 热点重连后局域网地址变了 | `journalctl -t duckdns-lan` | 手机端改用 `localhotspot.duckdns.org:3389`，不要记 IP |
-| 重启后连不上 | 是否存在登录会话 | 这是“远程协助”模式，需先有图形会话；见 `reference/troubleshooting.md` 的已知限制 |
+| 重启后/登出后连不上 | 客户端连的是哪个端口 | 3389 是用户级“远程协助”，没有图形会话就没了；改连 33890（系统级 remote login），首次会落到 GDM 登录界面 |
+| 登录界面能连但进不去桌面 | `journalctl -u gnome-remote-desktop` | 正常流程是先到 greeter，再在界面里登录 `who`；登录后 handover 到该会话 |
 
 深入步骤见 [`reference/troubleshooting.md`](reference/troubleshooting.md)。
 

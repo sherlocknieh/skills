@@ -7,7 +7,8 @@
 ## 0. 前置
 
 - Fedora 44+、GNOME 50、Wayland。Fedora 44 已无 GNOME Xorg 会话。
-- 本机必须已有图形登录会话；grd 是“远程协助”模式，不覆盖重启后的登录界面。
+- 用户级 grd（3389）是“远程协助”模式，只覆盖已有图形会话；登录界面/无人登录场景由系统级
+  remote login（33890）负责，见 1.1。两者互不影响，可同时开。
 - 用户名 `who`、局域网 IP `192.168.66.240`、路由器 `192.168.66.1` 按实际环境替换。
 
 ## 1. 接入层：GNOME RDP
@@ -42,6 +43,51 @@ echo $?                                     # 0
 ```
 
 `+auth-only` 只验证认证，不建立桌面会话，适合本机自测。
+
+### 1.1 登录界面 / 无人登录时的远程登录（系统级）
+
+用户级 grd 跟着图形会话生死：登出、重启后 3389 无监听。系统级 daemon 不依赖登录会话，
+自己拉一个无头 greeter 会话，连上就是 GDM 登录界面，登录后 handover 到新会话。两套配置
+目录、证书、凭据互相独立。
+
+```bash
+# 独立证书目录（属主是系统 daemon 用户，不是 who）
+sudo install -d -o gnome-remote-desktop -g gnome-remote-desktop -m 700 /etc/gnome-remote-desktop
+sudo openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
+  -subj "/CN=who-fedora-remote-login" \
+  -keyout /etc/gnome-remote-desktop/tls.key \
+  -out /etc/gnome-remote-desktop/tls.crt
+sudo chown gnome-remote-desktop:gnome-remote-desktop /etc/gnome-remote-desktop/tls.{crt,key}
+sudo chmod 600 /etc/gnome-remote-desktop/tls.key
+
+# 端口必须和用户级 3389 错开；关掉端口协商，避免被悄悄挪走
+sudo grdctl --system rdp set-port 33890
+sudo grdctl --system rdp set-tls-cert /etc/gnome-remote-desktop/tls.crt
+sudo grdctl --system rdp set-tls-key /etc/gnome-remote-desktop/tls.key
+sudo grdctl --system rdp set-credentials who '<RDP密码>'
+sudo grdctl --system rdp disable-port-negotiation
+sudo grdctl --system rdp enable
+sudo systemctl enable --now gnome-remote-desktop.service
+
+sudo firewall-cmd --permanent --add-port=33890/tcp && sudo firewall-cmd --reload
+```
+
+配置落在 `/etc/gnome-remote-desktop/grd.conf`，凭据走 gkeyfile（本机无可用 TPM，日志会提示
+`Init TPM credentials failed ... using GKeyFile as fallback`，属正常）。`grdctl --system`
+不带服务也能读改写配置，改完证书要 `sudo systemctl restart gnome-remote-desktop.service`。
+
+**完成标准**：
+
+```bash
+ss -H -ltn 'sport = :33890'                              # 有 LISTEN
+sudo grdctl --system status | sed -n '/^RDP:/,/^VNC:/p'  # enabled / Port: 33890
+# 真实短连接：会在日志里看到无头 greeter 会话和 handover，客户端出画面
+timeout 20 xfreerdp /v:127.0.0.1:33890 /u:who /p:'<RDP密码>' /cert:ignore /w:800 /h:600
+sudo journalctl -u gnome-remote-desktop -n 20 -o cat     # "No seat assigned, running headlessly"
+```
+
+连接期间会临时出现 `gdm-greeter` 会话；客户端断开后自动回收。测试后若残留，
+`sudo loginctl terminate-session <id>` 清掉。
 
 ## 2. 锁屏层：Allow Locked Remote Desktop
 
@@ -100,9 +146,12 @@ gsettings set org.gnome.desktop.screensaver lock-delay 0 # 息屏即锁
 
 ```bash
 sudo firewall-cmd --permanent --add-port=3389/tcp
+sudo firewall-cmd --permanent --add-port=33890/tcp
 sudo firewall-cmd --reload
 sudo firewall-cmd --list-ports
 ```
+
+如果开了系统级 remote login（1.1），33890 也要放行。
 
 本机历史上放行过 `1025-65535/tcp`；若没有其他服务依赖这个大范围，收窄到 3389 更安全。
 
@@ -111,21 +160,26 @@ sudo firewall-cmd --list-ports
 LuCI：`http://192.168.66.1` → **防火墙 → 端口转发**（标准路径
 `/cgi-bin/luci/admin/network/firewall/forwards`）。
 
-| 字段 | 值 |
-|---|---|
-| 名称 | `rdp-54389` |
-| 协议 | TCP |
-| 外部区域 / 端口 | `wan` / `54389` |
-| 内部区域 / IP / 端口 | `lan` / `192.168.66.240` / `3389` |
+| 字段 | 值（桌面会话） | 值（登录界面，可选） |
+|---|---|---|
+| 名称 | `rdp-54389` | `rdp-remote-login` |
+| 协议 | TCP | TCP |
+| 外部区域 / 端口 | `wan` / `54389` | `wan` / `54390` |
+| 内部区域 / IP / 端口 | `lan` / `192.168.66.240` / `3389` | `lan` / `192.168.66.240` / `33890` |
+
+两条规则独立，只要登出后也能连就加第二条。LuCI 上添加流程：填「新建端口转发」一行 →
+「添加」→ 列表出现新行 → **「保存&应用」**（只点添加不会写入配置）。
 
 **完成标准**：手机关 Wi-Fi 用流量，执行
 
 ```bash
 xfreerdp /v:sherlocknieh.duckdns.org:54389 /u:who /p:'<RDP密码>' /cert:ignore +auth-only
+xfreerdp /v:sherlocknieh.duckdns.org:54390 /u:who /p:'<RDP密码>' /cert:ignore /w:800 /h:600
 ```
 
-退出码 0。若在局域网内测公网域名失败，先排除路由器不支持 hairpin NAT：局域网直接用
-`192.168.66.240:3389` 测。
+第一条退出码 0；第二条应出现 GDM 登录界面。若在局域网内测公网域名失败，先排除路由器不支持
+hairpin NAT：局域网直接用 `192.168.66.240:3389` 与 `:33890` 测。本机实测 54389/54390
+都支持从内网回环访问。
 
 ## 6. DuckDNS 动态域名
 
@@ -331,6 +385,13 @@ grdctl rdp disable
 systemctl --user disable --now gnome-remote-desktop.service
 # 可选：连同凭据和证书一起删除
 # rm -rf ~/.local/share/gnome-remote-desktop
+
+# 3b) 系统级 remote login（33890）
+sudo systemctl disable --now gnome-remote-desktop.service
+sudo grdctl --system rdp disable
+# 可选：连同系统级凭据和证书一起删除
+# sudo rm -rf /etc/gnome-remote-desktop
+sudo firewall-cmd --permanent --remove-port=33890/tcp; sudo firewall-cmd --reload
 
 # 4) 锁屏扩展（用 Python 过滤，避免 sed 改坏数组）
 cur=$(gsettings get org.gnome.shell enabled-extensions)

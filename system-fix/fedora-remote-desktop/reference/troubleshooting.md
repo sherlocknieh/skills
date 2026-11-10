@@ -206,22 +206,34 @@ tailscale status
 ```bash
 # 主机侧
 sudo firewall-cmd --list-ports
-sudo firewall-cmd --query-port=3389/tcp
+sudo firewall-cmd --query-port=33890/tcp
 
 # 从公网侧（手机流量）
 xfreerdp /v:sherlocknieh.duckdns.org:54389 /u:who /p:'<密码>' /cert:ignore +auth-only
+xfreerdp /v:sherlocknieh.duckdns.org:54390 /u:who /p:'<密码>' /cert:ignore /w:800 /h:600
 ```
 
-规则在 LuCI：`http://192.168.66.1` → 防火墙 → 端口转发，名称 `rdp-54389`，
-`wan:54389 → 192.168.66.240:3389/tcp`。公网端口暴露有风险：不用时删除规则，
-并保持强密码 + TLS。
+规则在 LuCI：`http://192.168.66.1` → 防火墙 → 端口转发，两条：
+
+| 名称 | 外网 | 内网 |
+|---|---|---|
+| `rdp-54389` | `wan:54389` | `192.168.66.240:3389` |
+| `rdp-remote-login` | `wan:54390` | `192.168.66.240:33890` |
+
+54390 那类非标端口只是降低扫描噪声，真正的门槛是强密码 + TLS。公网暴露有风险：
+不用时删掉 DNAT 规则（先删规则，公网立即不可达）。
+
+连 54390 时 grd 会下发一次 server redirection，目标仍是客户端原来用的公网地址和端口；
+FreeRDP/Windows App 会自动跟随，路由器侧不需要为它额外开端口。本机实测 54389/54390
+都存在可用的 hairpin 回环。
 
 ## 4. 已知限制
 
-1. **重启后连不上**：grd 是用户级“远程协助”，需要已有图形登录会话。要在登录界面就能
-   连，可考虑 GDM 自动登录（降低本机安全性），或系统级 Remote Login
-   （`gnome-remote-desktop.service` 系统单元，当前 disabled；用 `grdctl --system status`
-   查看，配置路径与用户级不同，属另一套方案）。
+1. **3389 与 33890 的分工**：用户级 grd（3389）是“远程协助”，跟着图形会话生死，
+   登出/重启后无监听；系统级 remote login（33890，`gnome-remote-desktop.service` 已
+   enable）不依赖登录会话，连上先到 GDM 登录界面，再在该界面登录 `who`。两套证书和
+   凭据互相独立，配置见 rebuild 1.1。系统级凭据落在 `/etc/gnome-remote-desktop/`
+   的 gkeyfile 里（本机 TPM 不可用时 grd 自动回退，日志有 `using GKeyFile as fallback`）。
 2. **RustDesk 在 Wayland 锁屏下不可用**：它依赖 xdg-desktop-portal 截图，锁屏时需要
    本地点选屏幕。RDP 走 mutter 特权 API，不受此限。
 3. **FlClash 影响排障**：Fake-IP 让本机解析失真，TUN 让直连 IP 检测失真。判断公网

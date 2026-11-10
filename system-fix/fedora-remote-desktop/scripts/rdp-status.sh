@@ -66,6 +66,30 @@ else
   bad "TLS 证书不可读：$crt"
 fi
 
+sec "1b. 登录界面层：系统级 remote login"
+
+if systemctl is-enabled --quiet gnome-remote-desktop.service 2>/dev/null; then
+  ok "系统单元 enabled（无人登录也可连）"
+  if systemctl is-active --quiet gnome-remote-desktop.service; then
+    ok "系统单元 active"
+  else
+    bad "系统单元未运行：sudo systemctl start gnome-remote-desktop.service"
+  fi
+  if [ -n "$(ss -H -ltn 'sport = :33890' 2>/dev/null)" ]; then
+    ok "端口 33890 正在监听（连上先到 GDM 登录界面）"
+  else
+    bad "端口 33890 未监听：sudo grdctl --system status 看配置"
+  fi
+  if [ "$(id -u)" -eq 0 ] && command -v grdctl >/dev/null 2>&1; then
+    grdctl --system status 2>/dev/null | sed -n '/^RDP:/,/^VNC:/p' \
+      | grep -E 'Status:|Port:|TLS fingerprint:' | sed 's/^[[:space:]]*/       /'
+  else
+    info "以 root 运行可看到系统级 grdctl --system status 明细"
+  fi
+else
+  warn "系统级 remote login 未启用：登出/重启后只有 3389 无监听（见 rebuild 1.1）"
+fi
+
 sec "2. 锁屏层：allow locked remote desktop"
 
 enabled_exts=$(gnome-extensions list --enabled 2>/dev/null)
