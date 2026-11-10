@@ -20,7 +20,7 @@ git pull --ff-only
 bash install.sh
 ```
 
-脚本依次完成：依赖安装 → 官方安装器 → 固定提交 → 应用客户端补丁 → 构建安装并恢复 setgid → 占位 overlay → GNOME 扩展 → 配置 → 托盘/服务/图标/自启/启动器 → 启用扩展 → daemon → 自检。**脚本结束会杀掉临时客户端**，避免它活过注销占用 TTY。
+脚本依次完成：依赖安装 → 官方安装器 → 固定提交 → 应用客户端补丁 → 构建安装并恢复 setgid → 占位 overlay → GNOME 扩展（含把上游辅助扩展 `inputactions@inputactions.org` 复制到用户目录并注入当前 shell 大版本）→ 配置 → 托盘/服务/图标/自启/启动器 → 启用扩展 → daemon → 自检。**脚本结束会杀掉临时客户端**，避免它活过注销占用 TTY。
 
 然后**注销并重新登录一次**（Wayland 下新扩展只能在登录时加载，脚本无法代替）。登录后 autostart 会拉起客户端和托盘。
 
@@ -30,10 +30,12 @@ bash install.sh
 
 ```bash
 gnome-extensions info inputactions-overlay@local   # 已启用: 是 / 状态: ACTIVE
+gnome-extensions info inputactions@inputactions.org | grep -E '已启用|状态'  # ACTIVE；OUT OF DATE 说明版本没注入
 busctl --user list | grep org.inputactions.overlay # 所有者应为 gnome-shell
 pgrep -af 'inputactions-client|inputactions-tray'  # 两者都应在运行
+inputactions variables list | grep window_class    # 聚焦窗口时不应是 <null>
 ```
 
-完成标准：扩展 ACTIVE、D-Bus 名字属于 gnome-shell、客户端/托盘在跑；按住右键画手势能看到轨迹和动作名。
+完成标准：两个扩展都 ACTIVE、D-Bus 名字属于 gnome-shell、客户端/托盘在跑、`window_class` 有值；按住右键画手势能看到轨迹和动作名，浏览器里的「上→右 / 左→下 / ← / →」能生效。
 
-验证环境：Fedora 44、GNOME 50.6 Wayland、InputActions standalone `d88c74b` / core `2beab8c`。
+验证环境：Fedora 44、GNOME 50.6 Wayland（GNOME 51.1 上已验证辅助扩展注入后可加载）、InputActions standalone `d88c74b` / core `2beab8c`。

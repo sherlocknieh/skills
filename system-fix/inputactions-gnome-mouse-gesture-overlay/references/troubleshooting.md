@@ -13,6 +13,7 @@ inputactions config issues
 - D-Bus 名字的所有者不是 `gnome-shell` → 扩展没接管 overlay，检查扩展是否启用。
 - 客户端没跑 → 按 `service.md` 启动。
 - 画了没反应 → 确认按住右键、停顿小于 2 秒、当前窗口 class 在对应条件组里（见 `config.md`）。
+- 只有带窗口条件的笔画（浏览器/文件管理器专用）不触发 → `inputactions variables list | grep window_class` 若全为 `<null>`，是辅助扩展没加载，见下面「辅助扩展 OUT OF DATE」。
 - 所有笔画同时失效 → 检查是否同时配置了 `stroke` 与 `swipe`，见 `config.md`。
 
 ## 已知坑
@@ -38,6 +39,10 @@ inputactions config issues
              - input:
                  - keyboard: [ SPACE+ENTER ]
      ```
+
+4. **辅助扩展 OUT OF DATE**：GNOME 会拒绝加载 `shell-version` 里没有当前大版本的扩展。上游 `inputactions@inputactions.org` 的 metadata 只写到发布时的版本，升级 GNOME 后它变成 `状态: OUT OF DATE`，不再通过 D-Bus 推送窗口信息 → `window_class` 全为 `<null>` → 所有带 `$window_class` 条件的手势（浏览器切/开/恢复标签）静默失效，而全局手势照常。
+   - 诊断：`gnome-extensions info inputactions@inputactions.org | grep 状态`；`inputactions variables list | grep window_class`。
+   - 修复：重跑 `install.sh`（现已复制扩展到用户目录并注入当前 shell 大版本），然后**注销重登**。手工等价做法是把 `/usr/share/inputactions/gnome/inputactions@inputactions.org` 复制到 `~/.local/share/gnome-shell/extensions/`，在 `metadata.json` 的 `shell-version` 里补上 `gnome-shell --version` 的大版本。
 
 5. **托盘「打开配置文件」无效**：通常不是托盘代码的问题。`application/yaml` 没有默认关联时 `xdg-open` 会挑一个错的 App（实测挑到 Android Studio），启动即因缺 X server 静默退出；旧实现又用 `except Exception: pass` 把错误吞了，所以看起来“没反应”。修法：`xdg-mime default com.microsoft.VSCode.desktop application/yaml` 补关联；代码改为先 `Gio.AppInfo.launch_default_for_uri`，再按 `gnome-text-editor`/`gedit`/`kate`/`xed`/`code`/`nano` 兜底，全失败就 `notify-send`。另外托盘必须跑在有 `WAYLAND_DISPLAY`/`XAUTHORITY` 的环境里（autostart 或 `systemd-run --user` 托管），否则它拉起的子进程会报 `Authorization required` / `Missing X server or $DISPLAY`。
 
