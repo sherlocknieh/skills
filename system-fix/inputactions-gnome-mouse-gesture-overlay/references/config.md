@@ -26,6 +26,7 @@ inputactions config reload   # 热生效，不用重编译、不用注销
 | ↖ 左上 | 截图（PrintScreen） | 全局 |
 | ↙ 左下 | 取消最大化（Super+Down） | 全局 |
 | 下 → 右（折线） | 关闭标签页（Ctrl+W） | 全局 |
+| 下 → 右 → 上（折线） | 关闭窗口（Alt+F4） | 全局 |
 | 上 → 右（折线） | 新标签页（Ctrl+T） | 浏览器 |
 | 左 → 右（折线） | 后退（Alt+Left） | 全局 |
 | 右 → 左（折线） | 前进（Alt+Right） | 全局 |
