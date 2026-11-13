@@ -22,7 +22,7 @@ inputactions config reload   # 热生效，不用重编译、不用注销
 | ↑ 上 | 滚动到顶部（Ctrl+Home） | 全局 |
 | ↓ 下 | 滚动到底部（Ctrl+End） | 全局 |
 | ↗ 右上 | 窗口最大化（Super+Up） | 全局 |
-| ↘ 右下 / 右 → 下（折线） | 刷新页面（Ctrl+R） | 浏览器 |
+| 右→下（折线） | 刷新（Ctrl+R） | 浏览器 |
 | ↘ 右下 | 剪贴板（Super+V） | 全局 |
 | ↖ 左上 | 截图（PrintScreen） | 全局 |
 | ↙ 左下 | 取消最大化（Super+Down） | 全局 |
