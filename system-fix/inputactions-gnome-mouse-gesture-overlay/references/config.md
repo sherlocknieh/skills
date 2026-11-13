@@ -22,6 +22,8 @@ inputactions config reload   # 热生效，不用重编译、不用注销
 | ↑ 上 | 滚动到顶部（Ctrl+Home） | 全局 |
 | ↓ 下 | 滚动到底部（Ctrl+End） | 全局 |
 | ↗ 右上 | 窗口最大化（Super+Up） | 全局 |
+| ↘ 右下 | 刷新页面（Ctrl+R） | 浏览器 |
+| 右 → 下（折线） | 刷新页面（Ctrl+R） | 浏览器 |
 | ↘ 右下 | 剪贴板（Super+V） | 全局 |
 | ↖ 左上 | 截图（PrintScreen） | 全局 |
 | ↙ 左下 | 取消最大化（Super+Down） | 全局 |
@@ -69,6 +71,7 @@ inputactions config issues && inputactions config reload
 
 ## 常见改动
 
+- **同一笔画重复**：同笔画在多个条件组/全局出现时，激活阶段都会命中，结束时按轨迹得分取最高、同分取列表中靠前的一项。想让某个应用优先，就把它的条件组放在前面，并复用同一份 base64 模板；例如浏览器的「右下」刷新排在全局「右下」剪贴板之前。
 - **方向反了**：交换动作里的 `LEFTALT+RIGHT` / `LEFTALT+LEFT`。
 - **文件管理器左右滑**：文件管理器组里 `→` 前进（Alt+Right）、`←` 后退（Alt+Left）；同一对直线笔画在浏览器组里是切标签页。
 - **改斜向容差**：改 `direction_tolerance` 后 `inputactions config reload`。
