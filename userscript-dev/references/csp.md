@@ -1,20 +1,18 @@
----
-name: userscript-csp-dev
-description: 用户脚本（Tampermonkey / Violentmonkey / Greasemonkey / ScriptCat）在严格 CSP 站点上的完整方案：dev 模式完全不运行时怎么排查与接入「管理器拉取 + eval」调试流程，以及正式版如何用 nonce / 构造式样式表 / GM_* 做运行时兜底。**只要出现「反复改代码、反复刷新，页面始终看不到任何效果，脚本像没装一样」就先读本文**（也适用于改样式/改逻辑后目标站点毫无变化、只有 build 产物才生效、同一份代码换个站就正常）。具体信号：控制台报 "Loading the script 'http://localhost:5173/__vite-plugin-monkey.entry.js' violates the following Content Security Policy directive"、"Refused to load the script"、"script-src" 拦截；或生产版样式整段失效、CDN 资源加载不到。
----
+# 严格 CSP 站点：dev 调试 + 运行时兜底
 
-# 用户脚本的 CSP：dev 调试 + 运行时兜底
+> 所属技能：[userscript-dev](../SKILL.md)。项目骨架、版本号、提交与验证等通用约定在主文档。
 
 严格 CSP 站点上有两条独立的战线，不要混为一谈：
 
 | 战线 | 谁在拦截 | 本方案的解法 |
 | --- | --- | --- |
-| dev 调试 | 页面加载 `localhost` 模块脚本 → `script-src` | 管理器拉取产物 + 沙箱 eval，页面零外部脚本（见下） |
+| dev 调试 | 页面加载 `localhost` 模块脚本 → `script-src` | 管理器拉取产物 + 执行阶梯（nonce → blob → 沙箱 eval），页面零外部脚本（见下） |
 | 正式版注入 | 页面里的 `<style>` / CDN 资源 → `style-src` / `script-src` / `font-src` | `csp-runtime.js` 三级回退（见「运行时兜底」） |
 
 配套文件：
-- [scripts/dev-loader.mjs](./scripts/dev-loader.mjs)：零依赖调试服务，一个命令搞定 watch 构建 + 拉取 + 热更新
-- [scripts/csp-runtime.js](./scripts/csp-runtime.js)：运行时模块，拷进项目用
+- [scripts/dev-loader.mjs](../scripts/dev-loader.mjs)：零依赖调试服务（最小实现：管理器拉取 + 直接 eval），一个命令搞定 watch 构建 + 拉取 + 热更新
+- [scripts/dev-kit.mjs](../scripts/dev-kit.mjs)：零依赖调试服务（完整实现：module+nonce → blob → eval 执行阶梯，可选 HMR），任意项目拷一个文件即可用
+- [scripts/csp-runtime.js](../scripts/csp-runtime.js)：运行时模块，拷进项目用
 
 ## 先做 30 秒排查：脚本到底跑了没有
 
@@ -36,7 +34,7 @@ description: 用户脚本（Tampermonkey / Violentmonkey / Greasemonkey / Script
 2. `pnpm build` 出来的 `.user.js` 装进管理器后同一页面一切正常（生产版由管理器注入 / 内联，受 `'unsafe-inline'` 或隔离世界保护）。
 3. 站点响应头里 `content-security-policy` 的 `script-src` 不含 `localhost` / `127.0.0.1`。
 
-一句话原理：dev server 的注入方式是**往页面插一个跨源 module 脚本**，页面 CSP 决定能否加载；源不在白名单就整份脚本不执行。所以任何「让页面去加载 localhost」的插件都无解（`vite-plugin-monkey`、`vite-userscript-plugin` 都是这条路，换插件没有收益）。
+一句话原理：dev server 的注入方式是**往页面插一个跨源 module 脚本**，页面 CSP 决定能否加载；源不在白名单就整份脚本不执行。所以任何「让页面去加载 localhost」的插件在**纯主机白名单**站点上都无解（`vite-plugin-monkey`、`vite-userscript-plugin` 都是这条路，换插件没有收益）。两个例外值得利用：页面用 nonce-source 时能借页面的 nonce 继续加载（ChatGPT），页面放行 `blob:` 时能先取文本再以 `blob:` 执行（Gemini）；两者都走不通才落到沙箱 eval。`dev-kit.mjs` 把这三条做成阶梯。
 
 ## 采用方案：管理器拉取 + eval（CSP 无关）
 
@@ -46,7 +44,7 @@ description: 用户脚本（Tampermonkey / Violentmonkey / Greasemonkey / Script
 watch 构建 IIFE 产物  ──►  本地 HTTP 服务  ──►  管理器 GM_xmlhttpRequest 拉取  ──►  eval
 ```
 
-配套脚本：[scripts/dev-loader.mjs](./scripts/dev-loader.mjs)（零依赖，只用 Node 内置模块）
+配套脚本：[scripts/dev-loader.mjs](../scripts/dev-loader.mjs)（零依赖，只用 Node 内置模块）
 
 ```bash
 # 最小用法：已有构建产物时只起服务
@@ -83,9 +81,36 @@ if (typeof unsafeWindow !== 'undefined') {
 
 `dev-loader.mjs` 还会自动把 `@grant GM_xmlhttpRequest` 和 `@connect 127.0.0.1` 补进安装头——产物自己没声明这两个权限也能跑。
 
+## 完整方案：执行阶梯（`dev-kit.mjs`）
+
+想把「能降级就降级，降不下来才用沙箱」一次做全，拷 [scripts/dev-kit.mjs](../scripts/dev-kit.mjs) 进项目（单文件、零依赖，不需要改构建配置）。安装条目由它生成，加载器按顺序尝试，任何一级成功就停：
+
+| 顺序 | 方式 | 前提 | 得到什么 |
+| --- | --- | --- | --- |
+| 1 | module + 页面 nonce | 页面用 nonce-source（ChatGPT） | 真 Vite HMR + 源码断点 |
+| 2 | `blob:` 单文件包 | 页面 `script-src` 放行 `blob:`（Gemini） | 页面上下文，与 `@grant none` 的正式版一致 |
+| 3 | 沙箱内直接 `eval` | 管理器允许 eval、注入方式为沙箱 | 不受任何 CSP 影响，且能看到 `GM_*` |
+
+**选路依据是产物头**：`auto` 模式下带 `@grant` 的走沙箱（否则 `GM_*` 静默降级成 `localStorage`），`@grant none` 的走页面。前一级失败自动降级，并打印断在哪一级。
+
+```bash
+# 任意构建器（只认 .user.js 产物）
+node tools/dev-kit.mjs --bundle .dev/app.user.js --build "vite build --watch"
+# vite-plugin-monkey：自动 build 到 .dev 并取唯一的 *.user.js
+node tools/dev-kit.mjs --preset vite-monkey
+# 没有产物、只要 HMR
+node tools/dev-kit.mjs --hmr http://localhost:5173/src/main.js --name "我的脚本" --match "https://site/*"
+```
+
+更新方式与 `dev-loader.mjs` 同一套契约：脚本暴露 `__USERSCRIPT_TEARDOWN__` → 调钩子后原地重执行，没有钩子 → 整页刷新，`--hot` / `--reload` 可强制；`--hook` 换钩子名，`--exec page|sandbox` 关掉自动选路。安装头同样自动补 `@grant GM_xmlhttpRequest` 与 `@connect`，去掉 `@grant none` 与更新地址，避免 dev 版被管理器升级成正式版。
+
+端点比最小实现多一个：`/install.user.js`、`/bundle.js`、`/__hash`、`/__status`（当前 hash、产物、exec 与更新方式）、`/`。单测在仓库 `/home/who/projects/userscript-dev-kit`（`npm test`，覆盖头部改写 + 两条执行路径 + 两条更新路径），技能里只放单文件。
+
+选型：**只求稳就用 `dev-loader.mjs`**（沙箱 eval 一条路，行为最可预测）；**想保留页面上下文或 HMR、又不想逐站点妥协，用 `dev-kit.mjs` 的阶梯**。两条都不碰正式版的运行时兜底（下一节）。
+
 ## 运行时兜底：正式版在严格 CSP 站点怎么活
 
-开发期可以绕开页面 CSP，正式版不能——它就在页面里跑。把 [scripts/csp-runtime.js](./scripts/csp-runtime.js) 拷进项目（如 `src/csp.js`），所有注入点都走它：
+开发期可以绕开页面 CSP，正式版不能——它就在页面里跑。把 [scripts/csp-runtime.js](../scripts/csp-runtime.js) 拷进项目（如 `src/csp.js`），所有注入点都走它：
 
 | API | 作用 |
 | --- | --- |
@@ -110,12 +135,13 @@ if (typeof unsafeWindow !== 'undefined') {
 
 1. 构建产物输出到独立目录（如 `.dev/`），不要覆盖随源码提交的 `dist/`；同时关掉压缩，保留可读栈。
 2. 让产物在 dev 构建下用**不同的实例标识**（宿主元素 id、z-index 层级、菜单项文案等），否则 dev 版和正式版在同一页面会互相顶掉或叠在一起。
-3. 把 [dev-loader.mjs](./scripts/dev-loader.mjs) 和 [csp-runtime.js](./scripts/csp-runtime.js) 拷进项目 `scripts/`、`src/`，加两条 npm script：
+3. 把 [dev-loader.mjs](../scripts/dev-loader.mjs)（或完整版 [dev-kit.mjs](../scripts/dev-kit.mjs)）和 [csp-runtime.js](../scripts/csp-runtime.js) 拷进项目 `scripts/`、`src/`，加两条 npm script：
 
    ```json
    {
      "scripts": {
-       "dev:csp": "node scripts/dev-loader.mjs --bundle .dev/app.user.js --build \"vite build --watch\""
+       "dev:csp": "node scripts/dev-loader.mjs --bundle .dev/app.user.js --build \"vite build --watch\"",
+       "dev:kit": "node scripts/dev-kit.mjs --preset vite-monkey"
      }
    }
    ```
@@ -145,17 +171,19 @@ manifest 侧的最小授权：`@grant GM_xmlhttpRequest`、`@connect *`（或至
 | 钩子挂在沙箱 window 上找不到 | 明明注册了钩子，仍然整页刷新 | 沙箱与页面 window 不是同一个对象；钩子要挂 `unsafeWindow`，载入器会两处都查 |
 | 生产版样式整段失效 | 严格 `style-src` 站点上布局崩、日志无报错 | 用 `applyStyle`（构造式样式表优先），不要直接 `createElement('style')` |
 | CDN 资源被拦 | 图标字体 / 公式补丁不加载 | `loadCss` / `loadScript` 自动改走管理器拉取；或干脆只在支持的站点加载 |
-| Trusted Types 抛错 | Gemini 上设 `script.src` 直接 throw | 走 `runScript` / `loadScript`，内部已用 `createPolicy` 包装 |
+| Trusted Types 抛错 | Gemini 上设 `script.src` 直接 throw | 走 `runScript` / `loadScript`，内部已用 `createPolicy` 包装；dev 载入器自带同名策略复用 |
+| dev 版配置读不到或存储不生效 | 页面上下文执行时没有 `GM_*`，代码静默退回 `localStorage` | 别让带 `@grant` 的脚本走 blob：kit 的 `--exec auto` 会按产物头选沙箱 |
+| 阶梯三级全失败 | 页面无 nonce、不放行 `blob:`、管理器禁 eval | 看 `__DEV_KIT__.error`；换管理器，或用 `--exec page` / `sandbox` 明确指定 |
 
 ## 与其它路线的取舍
 
 - **官方建议的 Disable-CSP 扩展**：一行代码不改，但调试期间所有站点都失去 CSP 保护，且不解决本地网络访问授权。
 - **`@require http://localhost:...`**：管理器拉取，同样不受 CSP，但管理器会缓存 `@require`，改代码要重装脚本，开发体验差。
 - **用 CDP 关掉页面 CSP**（自建 Chrome + `Page.setBypassCSP`）：保留 HMR、源码断点，代价是多一个独立浏览器实例和 Chrome 版本带来的参数差异；只有在强需求 HMR 时才选它。
-- **在页面内做多级降级**（直连 → 复用 nonce → blob 单文件包，即 `vite.config.js` 里塞一个 loader）：不用额外命令和端口，普通站点仍有 HMR；但只解决 `script-src`，样式仍受 `style-src` 约束，且要跟着打包插件内部结构走，结构一变就得 `console.warn` 提示手动放行。
+- **在页面内做多级降级**（直连 → 复用 nonce → blob 单文件包）：不用额外命令和端口，普通站点仍有 HMR；但只解决 `script-src`，样式仍受 `style-src` 约束，且要跟着打包插件内部结构走（正则改写它的注入段），结构一变就得 `console.warn` 提示手动放行。通用、无耦合的版本见 `dev-kit.mjs` 的执行阶梯——它只认 `.user.js` 产物，不改插件。
 - **改成浏览器扩展（CRXJS / Plasmo）分发**：content script 由浏览器注入，天然无 CSP 问题，但要维护双构建双产物，产品形态也变了。
 
-选型建议：**调试用管理器拉取 + eval**（唯一在所有严格 CSP 站点上都成立的做法，与 `script-src` / `connect-src` / 本地网络授权全部无关）；**正式版用 `csp-runtime.js` 的三级回退**。页面内降级链只在「必须保留页面上下文或 HMR」时才有价值。
+选型建议：**调试用管理器拉取 + eval**（唯一在所有严格 CSP 站点上都成立的做法，与 `script-src` / `connect-src` / 本地网络授权全部无关；要页面上下文或 HMR 时用 `dev-kit.mjs` 的阶梯逐级降级）；**正式版用 `csp-runtime.js` 的三级回退**。页面内降级链只在「必须保留页面上下文或 HMR」时才有价值。
 
 ## 验证清单
 
@@ -163,6 +191,7 @@ manifest 侧的最小授权：`@grant GM_xmlhttpRequest`、`@connect *`（或至
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5180/install.user.js   # 200
 curl -s http://127.0.0.1:5180/__hash                                            # 有值，改代码后变化
 curl -s http://127.0.0.1:5180/install.user.js | head -3                          # @name 带 (dev)
+curl -s http://127.0.0.1:5180/__status                                           # dev-kit：hash / 产物 / exec / 更新方式
 ```
 
 ```bash
