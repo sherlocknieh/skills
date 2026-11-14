@@ -1,6 +1,6 @@
 ---
 name: userscript-dev
-description: 油猴脚本（Tampermonkey / Violentmonkey / Greasemonkey / ScriptCat）的通用工程约定：Vite + vite-plugin-monkey 骨架、日期时间版本号与 dist 同提交、单一入口按职责拆分、站点差异收进适配层、动态 DOM 防御、中文目的性注释、AGENTS.md 索引与发布自检。**同时覆盖严格 CSP 站点的完整方案**：dev 用「管理器拉取 + 执行阶梯」，正式版用 nonce / 构造式样式表 / GM_* 兜底。Use when: 新建或改动用户脚本、新增站点适配、调整构建/版本号/发布流程，或出现「反复改代码、反复刷新，页面始终看不到任何效果，脚本像没装一样」（控制台报 violates the following Content Security Policy directive、Refused to load the script、script-src 拦截，或只有 build 产物才生效）。
+description: "油猴脚本（Tampermonkey / Violentmonkey / Greasemonkey / ScriptCat）的通用工程约定：Vite + vite-plugin-monkey 骨架、日期时间版本号与 dist 同提交、单一入口按职责拆分、站点差异收进适配层、动态 DOM 防御、中文目的性注释、AGENTS.md 索引与发布自检。**同时覆盖严格 CSP 站点的完整方案**：dev 用「管理器拉取 + 执行阶梯」，正式版用 nonce / 构造式样式表 / GM_* 兜底。Use when: 新建或改动用户脚本、新增站点适配、调整构建/版本号/发布流程，或出现「反复改代码、反复刷新，页面始终看不到任何效果，脚本像没装一样」（控制台报 violates the following Content Security Policy directive、Refused to load the script、script-src 拦截，或只有 build 产物才生效）。"
 ---
 
 # 用户脚本开发约定
