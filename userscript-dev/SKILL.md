@@ -42,6 +42,7 @@ description: "油猴脚本（Tampermonkey / Violentmonkey / Greasemonkey / Scrip
 ## 版本号与发布
 
 - 版本号格式 `YYYY.MM.DD.HHmm`（**本地时间**），由脚本写进 `vite.config.js` 的 `userscript.version`；不手填。
+- **每次提交都必须发布新版**：提交动作由 `release` 脚本（或提交前钩子）完成，不要先 `git commit` 再补一次发布。这样源码、版本号、`dist` 与 tag 始终在同一个提交里，也不会漏发。
 - 同一分钟内重复执行或系统时间回拨时，顺延到更大的分钟，保证版本号严格递增——否则管理器认为没更新，不会重新拉取。
 - 源码、版本号、`dist` 产物必须在**同一个提交**里，并打 `vYYYY.MM.DD.HHmm` 标签。
 - 两种落地方式，按项目现状选，不要同时上：
@@ -110,6 +111,7 @@ description: "油猴脚本（Tampermonkey / Violentmonkey / Greasemonkey / Scrip
 - Conventional Commits：`feat:` / `fix:` / `style:` / `docs:` / `chore:`，可带 scope。
 - 一个提交讲清一件事，描述写"影响了什么行为、为什么"，不要写"改了点东西"。
 - 版本号与产物跟源码同提交；不要把构建产物混进与它无关的提交。
+- 每次提交都发布新版：提交由 `release` 脚本（或钩子）产生，不单独 `git commit`；默认带 `--push`，让远端分支与标签同步。
 - 发布走项目脚本（`release` / 钩子），不要手工拼 commit + tag。
 
 ## 验证清单
