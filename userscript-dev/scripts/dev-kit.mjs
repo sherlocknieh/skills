@@ -27,7 +27,7 @@ import { pathToFileURL } from 'node:url';
 import { Script } from 'node:vm';
 
 const TAG = '[dev-kit]';
-const DEFAULT_DIR = '.dev';
+const DEFAULT_DIR = '.dev/build';
 const DEFAULT_PORT = 5180;
 const HEADER_START = '// ==UserScript==';
 const HEADER_END = '// ==/UserScript==';
@@ -424,15 +424,15 @@ function parseArgs(argv) {
 
 const HELP = `${TAG} 任意用户脚本项目的通用调试服务（零依赖）
 
-  node dev-kit.mjs --bundle .dev/app.user.js [--build "vite build --watch"]
-  node dev-kit.mjs --preset vite-monkey          # 自动 build --outDir .dev 并找唯一的 *.user.js
+  node .dev/dev-kit.mjs --bundle .dev/build/app.user.js [--build "vite build --watch --outDir .dev/build"]
+  node .dev/dev-kit.mjs --preset vite-monkey     # 自动 build --outDir .dev/build 并找唯一的 *.user.js
   node dev-kit.mjs --hmr http://localhost:5173/src/main.js --name "我的脚本" --match "https://site/*"
 
 选项：
   --bundle <path>     调试产物（.user.js）路径
-  --dir <path>        产物目录，自动取唯一的 *.user.js（默认 .dev）
+  --dir <path>        产物目录，自动取唯一的 *.user.js（默认 .dev/build）
   --build "<cmd>"     启动时一并跑 watch 构建
-  --preset vite-monkey 等价于 --build "vite build --watch --outDir .dev" + --dir .dev
+  --preset vite-monkey 等价于 --build "vite build --watch --outDir .dev/build" + --dir .dev/build
   --hmr <url>         dev server 的 module 入口；页面有 nonce 时保留 HMR（可选）
   --exec <mode>       auto（默认，按 @grant 选路）| page | sandbox
   --hot               强制原地重执行（默认按 teardown 钩子自动判断）
@@ -481,11 +481,12 @@ export async function startDevKit(options = {}) {
     const host = String(opts.host || '127.0.0.1');
     const publicHost = host === '0.0.0.0' || host === '::' ? '127.0.0.1' : host;
     const preset = opts.preset === true ? 'vite-monkey' : opts.preset;
-    const dir = path.resolve(String(opts.dir || DEFAULT_DIR));
+    const dirArg = String(opts.dir || DEFAULT_DIR);
+    const dir = path.resolve(dirArg);
 
     const buildCommand = opts.build === true
-        ? (preset ? `vite build --watch --outDir ${path.basename(dir)}` : '')
-        : opts.build || (preset ? `vite build --watch --outDir ${path.basename(dir)}` : '');
+        ? (preset ? `vite build --watch --outDir ${dirArg}` : '')
+        : opts.build || (preset ? `vite build --watch --outDir ${dirArg}` : '');
 
     // 纯 HMR 模式（没有产物）时用命令行元数据合成一个头部，省掉先构建一次
     const meta = opts.meta ? opts.meta : (opts.name ? [['name', String(opts.name)], ['namespace', 'dev-kit'], ['version', '0.0.0'], ['run-at', String(opts['run-at'] || 'document-start')]] : null);

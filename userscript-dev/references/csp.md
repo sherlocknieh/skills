@@ -48,10 +48,10 @@ watch 构建 IIFE 产物  ──►  本地 HTTP 服务  ──►  管理器 GM
 
 ```bash
 # 最小用法：已有构建产物时只起服务
-node scripts/dev-loader.mjs --bundle dist/app.user.js
+node .dev/dev-loader.mjs --bundle .dev/build/app.user.js
 
 # 推荐用法：watch 构建 + 服务一起跑
-node scripts/dev-loader.mjs --bundle .dev/app.user.js --build "vite build --watch"
+node .dev/dev-loader.mjs --bundle .dev/build/app.user.js --build "vite build --watch --outDir .dev/build"
 ```
 
 首次打开 `http://127.0.0.1:5180/install.user.js` 安装 `xxx (dev)`，之后任意页面自动加载最新产物。端点：`/install.user.js`、`/bundle.js`、`/__hash`、`/`。
@@ -95,16 +95,16 @@ if (typeof unsafeWindow !== 'undefined') {
 
 ```bash
 # 任意构建器（只认 .user.js 产物）
-node tools/dev-kit.mjs --bundle .dev/app.user.js --build "vite build --watch"
-# vite-plugin-monkey：自动 build 到 .dev 并取唯一的 *.user.js
-node tools/dev-kit.mjs --preset vite-monkey
+node .dev/dev-kit.mjs --bundle .dev/build/app.user.js --build "vite build --watch --outDir .dev/build"
+# vite-plugin-monkey：自动 build 到 .dev/build 并取唯一的 *.user.js
+node .dev/dev-kit.mjs --preset vite-monkey
 # 没有产物、只要 HMR
-node tools/dev-kit.mjs --hmr http://localhost:5173/src/main.js --name "我的脚本" --match "https://site/*"
+node .dev/dev-kit.mjs --hmr http://localhost:5173/src/main.js --name "我的脚本" --match "https://site/*"
 ```
 
 更新方式与 `dev-loader.mjs` 同一套契约：脚本暴露 `__USERSCRIPT_TEARDOWN__` → 调钩子后原地重执行，没有钩子 → 整页刷新，`--hot` / `--reload` 可强制；`--hook` 换钩子名，`--exec page|sandbox` 关掉自动选路。安装头同样自动补 `@grant GM_xmlhttpRequest` 与 `@connect`，去掉 `@grant none` 与更新地址，避免 dev 版被管理器升级成正式版。
 
-端点比最小实现多一个：`/install.user.js`、`/bundle.js`、`/__hash`、`/__status`（当前 hash、产物、exec 与更新方式）、`/`。单测在仓库 `/home/who/projects/userscript-dev-kit`（`npm test`，覆盖头部改写 + 两条执行路径 + 两条更新路径），技能里只放单文件。
+端点比最小实现多一个：`/install.user.js`、`/bundle.js`、`/__hash`、`/__status`（当前 hash、产物、exec 与更新方式）、`/`。改 `dev-kit.mjs` 后按下面「验证清单」跑一遍：覆盖头部改写、三条执行路径与两条更新路径，技能里只放单文件。
 
 选型：**只求稳就用 `dev-loader.mjs`**（沙箱 eval 一条路，行为最可预测）；**想保留页面上下文或 HMR、又不想逐站点妥协，用 `dev-kit.mjs` 的阶梯**。两条都不碰正式版的运行时兜底（下一节）。
 
@@ -133,20 +133,20 @@ node tools/dev-kit.mjs --hmr http://localhost:5173/src/main.js --name "我的脚
 
 ## 接入到任意项目
 
-1. 构建产物输出到独立目录（如 `.dev/`），不要覆盖随源码提交的 `dist/`；同时关掉压缩，保留可读栈。
+1. 构建产物输出到 `.dev/build/`，不要覆盖随源码提交的 `dist/`；同时关掉压缩，保留可读栈。
 2. 让产物在 dev 构建下用**不同的实例标识**（宿主元素 id、z-index 层级、菜单项文案等），否则 dev 版和正式版在同一页面会互相顶掉或叠在一起。
-3. 把 [dev-loader.mjs](../scripts/dev-loader.mjs)（或完整版 [dev-kit.mjs](../scripts/dev-kit.mjs)）和 [csp-runtime.js](../scripts/csp-runtime.js) 拷进项目 `scripts/`、`src/`，加两条 npm script：
+3. 把 [dev-loader.mjs](../scripts/dev-loader.mjs)（或完整版 [dev-kit.mjs](../scripts/dev-kit.mjs)）和 [csp-runtime.js](../scripts/csp-runtime.js) 拷进项目 `.dev/`、`src/`，加两条 npm script：
 
    ```json
    {
      "scripts": {
-       "dev:csp": "node scripts/dev-loader.mjs --bundle .dev/app.user.js --build \"vite build --watch\"",
-       "dev:kit": "node scripts/dev-kit.mjs --preset vite-monkey"
+       "dev:csp": "node .dev/dev-loader.mjs --bundle .dev/build/app.user.js --build \"vite build --watch --outDir .dev/build\"",
+       "dev:kit": "node .dev/dev-kit.mjs --preset vite-monkey"
      }
    }
    ```
 
-4. 跑起来，把安装地址写进文档；`.dev/` 加进 `.gitignore`，产物目录加进 ESLint ignore。
+4. 跑起来，把安装地址写进文档；`.dev/build/` 加进 `.gitignore` 与 ESLint ignore，`.dev/*.mjs` 保持提交。
 5. 管理器侧要求：允许 eval（Tampermonkey / Violentmonkey 默认允许），注入方式保持「隔离世界 / 沙箱」，设成「页面上下文」会重新受站点 CSP 限制。
 
 manifest 侧的最小授权：`@grant GM_xmlhttpRequest`、`@connect *`（或至少本地地址）、`@match *://*/*`、`@noframes`。载入器会自动补前两项。
@@ -201,7 +201,7 @@ curl -s http://127.0.0.1:5180/install.user.js -o /tmp/i.user.js && node --check 
 
 比静态检查更可靠：用 `happy-dom` 建页面、`node:vm` 跑 `install.user.js` 的加载器部分，把 `GM_xmlhttpRequest` 换成走本地 http 的实现，
 断言脚本自己的 banner 日志出现、没有 `[dev]` 报错。这一步能在交给浏览器之前发现「装上了但没执行」。
-注意测试脚本别放进 watch 构建的输出目录（如 `.dev/`），构建会清空该目录。
+注意测试脚本别放进 watch 构建的输出目录（如 `.dev/build/`），构建会清空该目录。
 
 这一段可以直接跑，覆盖「首次执行」和两条更新路径：
 

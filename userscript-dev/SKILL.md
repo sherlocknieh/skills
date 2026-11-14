@@ -37,6 +37,7 @@ description: 油猴脚本（Tampermonkey / Violentmonkey / Greasemonkey / Script
 | 能力 | `src/<feature>.js` 或 `src/core/` | 一个文件一件事，互相不 import 成环 |
 | 站点差异 | `src/handlers/<site>/` 或 `SITE_ADAPTERS` / `src/data/sites/` | 主流程不认识具体站点 |
 | 元数据 | `vite.config.js` | 只放 userscript 头与构建参数 |
+| 开发构建 | `.dev/` | 版本/发布/调试服务等一切开发构建相关代码，随源码提交；调试产物放 `.dev/build/` |
 
 ## 版本号与发布
 
@@ -44,8 +45,8 @@ description: 油猴脚本（Tampermonkey / Violentmonkey / Greasemonkey / Script
 - 同一分钟内重复执行或系统时间回拨时，顺延到更大的分钟，保证版本号严格递增——否则管理器认为没更新，不会重新拉取。
 - 源码、版本号、`dist` 产物必须在**同一个提交**里，并打 `vYYYY.MM.DD.HHmm` 标签。
 - 两种落地方式，按项目现状选，不要同时上：
-  - 提交前钩子（`.githooks/pre-commit` → `scripts/bump-and-build.mjs`）：每次提交自动升版本 + 构建 + `git add`，`npm run hooks` 启用。
-  - `scripts/release.mjs`：`npm run release "feat: xxx"` 一步升版本 → lint → test → build → commit → tag；`--push` 推送，`--dry-run` 只预览版本号。发布脚本内部提交要 `--no-verify`，避免重复触发钩子。
+  - 提交前钩子（`.dev/githooks/pre-commit` → `.dev/bump-and-build.mjs`）：每次提交自动升版本 + 构建 + `git add`，`npm run hooks` 启用。
+  - `.dev/release.mjs`：`npm run release "feat: xxx"` 一步升版本 → lint → test → build → commit → tag；`--push` 推送，`--dry-run` 只预览版本号。发布脚本内部提交要 `--no-verify`，避免重复触发钩子。
 - `npm run build` 只构建、不动版本号，供本地验证用。
 - 构建失败要能中断提交，并把 `vite.config.js` 还原——半途失败不能留下一个升过号但没产物的提交。
 
@@ -87,7 +88,7 @@ description: 油猴脚本（Tampermonkey / Violentmonkey / Greasemonkey / Script
 
 接入要点（细节和坑清单都在 references 里）：
 
-- 调试产物输出到 `.dev/`，不覆盖入库的 `dist/`；`.dev/` 进 `.gitignore`，产物目录进 lint ignore。
+- 开发构建相关代码统一放 `.dev/`（含 `dev-kit.mjs`），调试产物输出到 `.dev/build/`，都不覆盖入库的 `dist/`；`.dev/build/` 进 `.gitignore` 与 lint ignore，`.dev/*.mjs` 保持提交。
 - 安装名加 ` (dev)`，并给 dev 构建独立的实例标识（宿主 id、z-index、菜单文案），否则两版互相顶掉。
 - 热重执行靠 `unsafeWindow.__USERSCRIPT_TEARDOWN__`：入口先判断 `initialized` 再 dispose，钩子必须幂等。
 - 正式版不要直接 `createElement('style')`，走 `applyStyle`；CDN 资源走 `loadCss` / `loadScript`。
