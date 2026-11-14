@@ -10,7 +10,7 @@ description: "OpenCode 配置备份/恢复：备份和恢复 OpenCode 的配置�
 
 **排除含凭据的文件**：本仓库是公开的，`service.json`（服务认证 token）、任何含密码/token/key 的文件都不备份，也不加入版本控制（已在 `.gitignore` 里）。配置的「生成方式」由 `opencode-init` / `opencode-askpass` / `opencode-service` 负责还原，备份只作快照对照。
 
-备份清单：`AGENTS.md`、`cli.json`、`opencode.json`、`ssh-askpass.sh`、`sudo-askpass.sh`、`plugins/askpass.js`、`cny-cost/`。
+备份清单：`AGENTS.md`、`cli.json`、`opencode.json`、`ssh-askpass.sh`、`sudo-askpass.sh`、`plugins/askpass.js`。
 
 # 恢复配置文件
 

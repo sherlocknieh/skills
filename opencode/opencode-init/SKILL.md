@@ -8,14 +8,13 @@ description: "OpenCode 初始化：添加全局规则、执行一些技能、修
 # 1. 初始化 OpenCode 配置文件
 
 ## 1.1 OpenCode TUI 开启图片预览
-在 `~/.config/opencode/cli.json` 中添加以下内容（`plugins` 指向本地插件目录，路径按实际用户名调整）：
+在 `~/.config/opencode/cli.json` 中添加以下内容：
 ```json
 {
   "$schema": "https://opencode.ai/v2/cli.json",
   "prompt": {
     "imagePreview": true
-  },
-  "plugins": ["/home/who/.config/opencode/cny-cost"]
+  }
 }
 ```
 
