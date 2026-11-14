@@ -1,27 +1,14 @@
-import shutil
+import os
 import subprocess
 
 from gi.repository import GObject, Nautilus
 
-TERMINALS = (
-    ("ptyxis", ["-d", "{path}", "--"]),
-    ("xdg-terminal-exec", ["--dir={path}"]),
-    ("kgx", ["--working-directory={path}", "--"]),
-    ("gnome-terminal", ["--working-directory={path}", "--"]),
-)
+# 打开 Web UI 的共享启动脚本（按目录建会话并打开浏览器），与 DING 桌面右键复用同一份逻辑
+LAUNCHER = os.path.expanduser('~/.local/bin/opencode-webui')
 
 
-def _launch_opencode(path):
-    for name, args in TERMINALS:
-        executable = shutil.which(name)
-        if executable is None:
-            continue
-        argv = [executable]
-        argv += [arg.format(path=path) for arg in args]
-        argv.append("opencode")
-        subprocess.Popen(argv, cwd=path, start_new_session=True)
-        return
-    subprocess.Popen(["opencode", path], cwd=path, start_new_session=True)
+def _launch_opencode_webui(path):
+    subprocess.Popen([LAUNCHER, path], cwd=path, start_new_session=True)
 
 
 class OpenInOpenCodeExtension(GObject.GObject, Nautilus.MenuProvider):
@@ -31,13 +18,13 @@ class OpenInOpenCodeExtension(GObject.GObject, Nautilus.MenuProvider):
             path = f.get_location().get_path()
             if path and path not in seen:
                 seen.add(path)
-                _launch_opencode(path)
+                _launch_opencode_webui(path)
 
     def _make_item(self, name):
         return Nautilus.MenuItem(
             name=name,
             label="用 OpenCode 打开",
-            tip="在 OpenCode 中打开",
+            tip="在 OpenCode Web UI 中打开",
         )
 
     def get_file_items(self, *args):

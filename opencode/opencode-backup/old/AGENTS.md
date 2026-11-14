@@ -37,33 +37,36 @@ sudo-run -t <命令>       # 需要彩色输出/进度条/伪终端时
 
 ### root 问题的报告格式
 
-遇到 sudo / 提权失败，先采集再说话，一次跑完：
+遇到 sudo / 提权失败，先采集再按固定格式报告。一次跑完：
 
 ```bash
 grep -m1 NoNewPrivs /proc/self/status
-sudo -A -n true >/dev/null 2>&1; echo "sudo_rc=$?"
-command -v zenity; echo "DBUS=${DBUS_SESSION_BUS_ADDRESS:-<unset>}"
+sudo -A id 2>&1 | tail -1
 systemctl --user is-active opencode.service
-pid=$(python3 -c 'import json;print(json.load(open("/home/who/.local/state/opencode/service.json"))["pid"])' 2>/dev/null)
-echo "server_pid=$pid"; grep -m1 NoNewPrivs /proc/$pid/status 2>/dev/null
+pid=$(python3 -c 'import json;print(json.load(open("/home/who/.local/state/opencode/service.json"))["pid"])')
+ppid=$(awk '{print $4}' /proc/$pid/stat)
+echo "pid=$pid"; tr '\0' ' ' </proc/$ppid/cmdline | cut -c1-60
 ```
 
-然后固定四段输出：
+输出固定两段，先状态后指导：
 
-1. **当前状态表**
+**当前状态**
 
-   | 项 | 值 |
-   |---|---|
-   | 会话 NoNewPrivs | 0 / 1 |
-   | `sudo -A` | 可用 / `已设置 no new privileges…` |
-   | 服务 pid / 端口 | 例 3010311 / 127.0.0.1:49374 |
-   | 服务 NoNewPrivs | 0 / 1 |
-   | opencode.service | enabled+active / disabled / 不存在 |
-   | zenity / D-Bus | 就绪 / 缺失 |
+| 项 | 值 |
+|---|---|
+| opencode.service | enabled / active (exited) |
+| 服务端口 | 127.0.0.1:49374 |
+| 服务进程 | pid 3010311，父进程是 Electron 主进程 |
+| 当前 shell NNP | 0 |
+| `sudo -A id` | `uid=0(root)` ✅ |
 
-2. **结论**：一句话点明走哪条路——`sudo -A`、`sudo-run`，还是请你换到 NNP=0 的会话 / 由你手动执行。
-3. **操作指导**：给可直接粘贴的命令；需要你动手的写成编号步骤，每步附验证命令。
-4. **风险**：涉及重启服务时点明后果（见下方「OpenCode 后台服务」一节的禁止项）。
+每行填实测值。失败就把原文写进去（如「已设置"no new privileges"标志」「Failed to connect to user scope bus」），不写「异常」「有问题」这类判断词。
+
+**操作指导**
+
+- 我能直接做的：给一个可粘贴的命令块。
+- 需要用户动手的：编号步骤，每步附验证命令。
+- 涉及重启服务的：先写明 `systemctl --user restart opencode.service` 会掐断当前会话（见「OpenCode 后台服务」一节），再给正确顺序。
 
 ### `sudo-run` 也失败时
 

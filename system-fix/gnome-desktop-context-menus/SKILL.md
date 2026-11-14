@@ -65,6 +65,7 @@ mkdir -p ~/.local/share/nautilus-python/extensions
 cp <本技能目录>/open-in-vscode.py ~/.local/share/nautilus-python/extensions/open-in-vscode.py
 cp <本技能目录>/open-in-opencode.py ~/.local/share/nautilus-python/extensions/open-in-opencode.py
 cp <本技能目录>/analyze-disk-usage.py ~/.local/share/nautilus-python/extensions/analyze-disk-usage.py
+install -Dm755 <本技能目录>/opencode-webui ~/.local/bin/opencode-webui
 ```
 
 > `analyze-disk-usage.py` 是同一机制的「分析磁盘占用」项：文件夹图标右键或文件夹内空白右键时，
@@ -74,9 +75,11 @@ cp <本技能目录>/analyze-disk-usage.py ~/.local/share/nautilus-python/extens
 - 仅当所选全部为文件夹时显示，菜单标签「用 VSCode 打开」/「用 OpenCode 打开」。
 - 文件夹图标右键 → 打开该文件夹；文件夹内空白右键 → 打开当前文件夹。
 - 每次启动 Nautilus 时加载；改脚本后 `nautilus -q` 再打开文件管理器即可。
-- OpenCode 是终端 TUI，脚本用 `ptyxis -d <目录> -- opencode` 在新终端里打开
-  （依次回退 `xdg-terminal-exec` / `kgx` / `gnome-terminal`）。
-  桌面版 `/opt/OpenCode/ai.opencode` 只处理 `opencode://` 深链、忽略目录参数，故不用它。
+- OpenCode 项打开的是 **Web UI**：脚本 `~/.local/bin/opencode-webui` 确保后台服务在跑，
+  用 `opencode api post /api/session` 在目标目录建会话，再以
+  `http://<服务地址>/server/<base64url(服务地址)>/session/<会话 id>` 在浏览器打开该会话。
+  同一脚本供 Nautilus 扩展与 DING 桌面右键复用。
+- 装脚本：`install -Dm755 <本技能目录>/opencode-webui ~/.local/bin/opencode-webui`。
 
 调试扩展是否加载（加载成功会打印）：
 
@@ -185,34 +188,24 @@ this._newMenuElement('用 VSCode 打开', "open-in-vscode-desktop", section);
 this._newMenuElement('用 OpenCode 打开', "open-in-opencode-desktop", section);
 ```
 
-### 3.3 OpenCode 项（终端 TUI）
+### 3.3 OpenCode 项（Web UI）
 
-OpenCode 的入口是终端 TUI，桌面版 `/opt/OpenCode/ai.opencode` 只响应 `opencode://` 深链、
-会忽略目录参数，所以统一用「新终端 + `opencode <目录>`」打开。
+OpenCode 右键项不启终端，而是调共享脚本 `~/.local/bin/opencode-webui <目录>`：
+确保后台服务在跑 → 按目录建会话 → 浏览器打开 Web UI 会话深链。
+Nautilus 扩展也调用同一脚本，两处行为一致。
 
-先在 `app/desktopIconsUtil.js`（`launchTerminal()` 之后）加两个共享助手，供两个菜单文件调用：
+先在 `app/desktopIconsUtil.js`（`launchTerminal()` 之后）加共享助手，供两个菜单文件调用：
 
 ```js
 export function launchOpencode(workdir) {
-    const candidates = [
-        ['ptyxis', ['-d', workdir, '--', 'opencode']],
-        ['xdg-terminal-exec', [`--dir=${workdir}`, 'opencode']],
-        ['kgx', [`--working-directory=${workdir}`, '--', 'opencode']],
-        ['gnome-terminal', [`--working-directory=${workdir}`, '--', 'opencode']],
-    ];
-    for (const [name, args] of candidates) {
-        const exec = GLib.find_program_in_path(name);
-        if (exec === null)
-            continue;
-        try {
-            trySpawn(workdir, [exec, ...args], null);
-            return;
-        } catch (err) {
-            print(`Starting ${exec} failed with ${err}`);
-        }
+    try {
+        trySpawn(workdir, ['opencode-webui', workdir], null);
+    } catch (err) {
+        print(`Starting opencode-webui failed with ${err}`);
     }
-    launchTerminal(workdir, 'opencode');
 }
+
+// trySpawn() 带 SpawnFlags.SEARCH_PATH，DING 进程的 PATH 含 ~/.local/bin，可直接写脚本名。
 
 export function launchVSCode(paths) {
     if (paths.length === 0)
@@ -333,6 +326,7 @@ msgmerge -q installed.po ding.pot -o merged.po && msgattrib --untranslated --no-
 |---|---|
 | DING 扩展 | `~/.local/share/gnome-shell/extensions/ding@rastersoft.com/` |
 | Nautilus 扩展 | `~/.local/share/nautilus-python/extensions/open-in-vscode.py`、`open-in-opencode.py`、`analyze-disk-usage.py` |
+| Web UI 启动脚本 | `~/.local/bin/opencode-webui`（Nautilus 与 DING 的 OpenCode 项共用） |
 | DING 补丁 | 上述 `app/fileItemMenu.js`、`app/desktopMenu.js`、`app/desktopIconsUtil.js`（备份建议存 `/tmp/opencode/ding-backup/`） |
 | DING 中文翻译 | `.../ding@rastersoft.com/locale/zh_CN/LC_MESSAGES/ding.mo`（成品在技能 `ding-i18n/`，原文件备份 `ding-i18n/ding.mo.orig.bak`） |
 | 文本模板 | `~/模板/新建文本文件.txt` |

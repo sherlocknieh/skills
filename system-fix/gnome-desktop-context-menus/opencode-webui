@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# 用 OpenCode Web UI 打开指定目录：确保后台服务在跑 → 按目录建会话 → 浏览器打开该会话深链。
+# 调用方：Nautilus 扩展 open-in-opencode.py、DING 桌面右键 action（desktopIconsUtil.launchOpencode）。
+set -o pipefail
+
+# 解析目标目录为绝对路径（菜单可能传入带符号链接的路径）
+dir="${1:-$PWD}"
+dir="$(cd "$dir" 2>/dev/null && pwd -P)" || exit 1
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/opencode/service.json"
+
+# 复用已运行的后台服务；健康时该命令直接退出，服务缺失时由它拉起
+opencode service start >/dev/null 2>&1
+
+# 从服务状态文件读服务地址，读不到就退回默认端口
+base=""
+if [ -r "$state" ]; then
+    base="$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d.get("url") or "")' "$state" 2>/dev/null)"
+fi
+[ -n "$base" ] || base="http://127.0.0.1:49374"
+
+# 在目标目录建一个空会话，拿到会话 id；失败则只打开 Web UI 首页
+body="$(python3 -c 'import json,sys;print(json.dumps({"location":{"directory":sys.argv[1]}}))' "$dir")"
+sid="$(opencode api post /api/session -d "$body" 2>/dev/null | python3 -c 'import json,sys;print(json.load(sys.stdin)["data"]["id"])' 2>/dev/null)"
+if [ -z "$sid" ]; then
+    xdg-open "$base/" >/dev/null 2>&1 &
+    exit 0
+fi
+
+# Web UI 把服务地址的 base64url 当 server key，会话页路由是 /server/<key>/session/<id>
+key="$(printf '%s' "$base" | base64 -w0 | tr '+/' '-_' | tr -d '=')"
+xdg-open "$base/server/$key/session/$sid" >/dev/null 2>&1 &
