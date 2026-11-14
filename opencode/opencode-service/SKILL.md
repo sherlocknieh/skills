@@ -11,6 +11,32 @@ description: 排查、启停、换端口 OpenCode 后台服务（systemd 用户�
 
 要换服务，顺序固定为：退出 app → 操作服务 → 再开 app。
 
+## 创建或重建
+
+```bash
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/opencode.service <<'EOF'
+[Unit]
+Description=OpenCode background server
+After=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=%h/.local/bin/opencode service start
+ExecStop=%h/.local/bin/opencode service stop
+
+[Install]
+WantedBy=default.target
+EOF
+
+systemctl --user daemon-reload
+systemctl --user enable --now opencode.service
+systemctl --user status opencode.service --no-pager
+```
+
+单元要靠 systemd（NoNewPrivs=0）拉起服务，才能避开桌面 app 派生链带来的提权限制。
+
 ## 现状
 
 - `~/.config/systemd/user/opencode.service` 已 enable：登录时执行 `opencode service start`，由 systemd（NoNewPrivs=0）拉起托管服务。

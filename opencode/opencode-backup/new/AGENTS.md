@@ -16,7 +16,7 @@
 ## 常驻规则
 
 - **配置备份**：改 OpenCode 配置文件后，立即用 `opencode-backup` 备份。
-- **Copilot 镜像**：改本文件后，立刻把正文整段同步到 `~/.copilot/instructions/opencode-agents.instructions.md`（4 行 frontmatter + 正文逐字相同）。细则见 `opencode-init`。
+- **Copilot 镜像**：改本文件后，立刻把正文整段同步到 `~/.copilot/instructions/opencode-agents.instructions.md`（4 行 frontmatter + 正文逐字相同），并更新 `opencode-init` 里的真源副本。细则见 `opencode-init`。
 - **提权**：先自检 `grep -m1 NoNewPrivs /proc/self/status`；`0` 用 `sudo -A <命令>`，`1` 用 `sudo-run <命令>`。失败按 `opencode-askpass` 的格式报告，不在提权上反复试。
 - **代码改动**：遵循仓库既有规范，取最小完整集。能改现有代码就不新增实体；新功能先找现成承载点，并说明为什么其他承载点不合适。
 - **概念取舍**：先判断是同一件事的两种形态还是两件事，再决定统一还是分开；差异尽量落在数据、配置或适配器上。
