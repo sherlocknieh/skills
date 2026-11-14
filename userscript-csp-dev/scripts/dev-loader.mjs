@@ -17,7 +17,12 @@
  *   --port <n>        本地服务端口，默认 5180
  *   --name <name>     安装后的脚本名，默认取产物 @name 加 " (dev)"
  *   --host <host>     监听地址，默认 127.0.0.1
+ *   --hook <name>     热重执行钩子，默认 __USERSCRIPT_TEARDOWN__
+ *   --reload          强制整页刷新，不尝试热重执行
  *   --no-open         启动后不自动打开浏览器
+ *
+ * 更新策略：默认先整页刷新；脚本若在页面 window 上暴露了 teardown 钩子（一个函数），
+ * 载入器改为「调钩子 → 重新 eval」，保留页面状态与滚动位置。
  */
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -39,6 +44,8 @@ const bundlePath = path.resolve(String(opts.bundle));
 const port = Number(opts.port ?? process.env.DEV_LOADER_PORT ?? 5180);
 const host = String(opts.host ?? '127.0.0.1');
 const origin = `http://${host}:${port}`;
+const hookName = String(opts.hook ?? '__USERSCRIPT_TEARDOWN__');
+const forceReload = Boolean(opts.reload);
 
 /** 拆出 `--key value` 与 `--flag`，多余位置参数忽略 */
 function parseArgs(argv) {
@@ -67,20 +74,28 @@ function bundleHash(text) {
 }
 
 /**
- * 复用产物自带的 userscript 头，只改名。
+ * 复用产物自带的 userscript 头，改名并补齐调试所需的授权。
  *
  * 改名是为了和正式版脚本共存：脚本管理器按 name+namespace 识别脚本，
  * 同名会把正式版顶掉；配置通常存在项目自己的 key 里，两版共享同一份配置。
+ * 补授权是因为载入器要多做一步「由管理器拉取产物」，产物本身可能没声明这两个权限。
  */
 function devHeader(text) {
   const end = text.indexOf(HEADER_END);
   if (!text.startsWith('// ==UserScript==') || end < 0) {
     throw new Error(`${bundlePath} 不是 userscript 产物（缺少 // ==UserScript== 头）`);
   }
-  const header = text.slice(0, end + HEADER_END.length);
+  let header = text.slice(0, end + HEADER_END.length);
   const name = String(opts.name ?? header.match(/^\/\/ @name\s+(.+)$/m)?.[1]?.trim() ?? 'dev') +
     ' (dev)';
-  return header.replace(/^\/\/ @name .*$/m, '// @name ' + name);
+  header = header.replace(/^\/\/ @name .*$/m, '// @name ' + name);
+  if (!/^\/\/ @grant\s+GM_xmlhttpRequest\s*$/m.test(header)) {
+    header = header.replace(HEADER_END, '// @grant GM_xmlhttpRequest\n' + HEADER_END);
+  }
+  if (!/^\/\/ @connect\s+/m.test(header)) {
+    header = header.replace(HEADER_END, '// @connect 127.0.0.1\n' + HEADER_END);
+  }
+  return header;
 }
 
 /**
@@ -88,14 +103,18 @@ function devHeader(text) {
  *
  * 必须用直接 eval —— 间接 eval 跑在全局作用域，看不到脚本管理器注入的 GM_*。
  * 管理器需允许 eval（默认允许）；把注入方式设成「页面上下文」会重新受站点 CSP 限制。
+ * 更新时：脚本暴露了 teardown 钩子就热重执行（不刷新），否则退回整页刷新。
  */
 function loaderSource() {
   return `
 (() => {
   const ORIGIN = '${origin}';
   const POLL_MS = 1500;
+  const HOOK = ${JSON.stringify(hookName)};
+  const FORCE_RELOAD = ${forceReload};
   let version = '';
   let warned = false;
+  let running = false;
 
   function request(pathname, onload) {
     GM_xmlhttpRequest({
@@ -110,7 +129,49 @@ function loaderSource() {
     });
   }
 
-  // 产物变化后整页刷新，替代 HMR
+  // 引入热重执行：可重复执行的脚本要能在同一个页面实例里先清理上一轮再启动
+  const pageScope = () => (typeof unsafeWindow !== 'undefined' && unsafeWindow ? unsafeWindow : window);
+
+  // 钩子可能挂在沙箱 window 或页面 window 上，两处都查，先页面后沙箱
+  function teardown() {
+    const page = pageScope();
+    const fn = page[HOOK] || window[HOOK];
+    if (typeof fn !== 'function') return false;
+    try {
+      fn();
+    } catch (e) {
+      console.warn(${JSON.stringify(`${TAG} teardown 钩子执行失败`)} , e);
+    }
+    return true;
+  }
+
+  function execute() {
+    if (running) return;
+    running = true;
+    request('/bundle.js?t=' + Date.now(), (res) => {
+      running = false;
+      if (res.status !== 200) {
+        console.error(${JSON.stringify(`${TAG} 拉取调试产物失败：`)} + res.status);
+        return;
+      }
+      try {
+        // sourceURL 让 DevTools 把这段代码单独列出来，便于断点
+        eval(res.responseText + '\\n//# sourceURL=userscript.dev.bundle.js');
+      } catch (e) {
+        console.error(${JSON.stringify(`${TAG} 执行调试产物失败`)}, e);
+      }
+    });
+  }
+
+  // 产物变化后：能热重执行就不刷新，否则整页刷新（替代 HMR）
+  function refresh() {
+    if (FORCE_RELOAD || !teardown()) {
+      location.reload();
+      return;
+    }
+    execute();
+  }
+
   function watch() {
     const readHash = (onload) =>
       request('/__hash', (res) => onload(String(res.responseText || '').trim()));
@@ -120,25 +181,14 @@ function loaderSource() {
     setInterval(() => {
       readHash((value) => {
         if (!version || value === version) return;
-        location.reload();
+        version = value;
+        refresh();
       });
     }, POLL_MS);
   }
 
-  request('/bundle.js?t=' + Date.now(), (res) => {
-    if (res.status !== 200) {
-      console.error(${JSON.stringify(`${TAG} 拉取调试产物失败：`)} + res.status);
-      return;
-    }
-    try {
-      // sourceURL 让 DevTools 把这段代码单独列出来，便于断点
-      eval(res.responseText + '\\n//# sourceURL=userscript.dev.bundle.js');
-    } catch (e) {
-      console.error(${JSON.stringify(`${TAG} 执行调试产物失败`)}, e);
-      return;
-    }
-    watch();
-  });
+  execute();
+  watch();
 })();
 `;
 }

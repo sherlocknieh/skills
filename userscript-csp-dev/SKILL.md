@@ -1,9 +1,20 @@
 ---
 name: userscript-csp-dev
-description: 解决用户脚本（Tampermonkey / Violentmonkey / Greasemonkey / ScriptCat）在严格 CSP 站点上 dev 模式完全不运行的问题。**只要出现「反复改代码、反复刷新，页面始终看不到任何效果，脚本像没装一样」就先读本文**（也适用于改样式/改逻辑后目标站点毫无变化、只有 build 产物才生效、同一份代码换个站就正常）。具体信号：控制台报 "Loading the script 'http://localhost:5173/__vite-plugin-monkey.entry.js' violates the following Content Security Policy directive"、"Refused to load the script"、"script-src" 拦截。还用于给新项目接入「管理器拉取 + eval」的 CSP 无关调试流程。
+description: 用户脚本（Tampermonkey / Violentmonkey / Greasemonkey / ScriptCat）在严格 CSP 站点上的完整方案：dev 模式完全不运行时怎么排查与接入「管理器拉取 + eval」调试流程，以及正式版如何用 nonce / 构造式样式表 / GM_* 做运行时兜底。**只要出现「反复改代码、反复刷新，页面始终看不到任何效果，脚本像没装一样」就先读本文**（也适用于改样式/改逻辑后目标站点毫无变化、只有 build 产物才生效、同一份代码换个站就正常）。具体信号：控制台报 "Loading the script 'http://localhost:5173/__vite-plugin-monkey.entry.js' violates the following Content Security Policy directive"、"Refused to load the script"、"script-src" 拦截；或生产版样式整段失效、CDN 资源加载不到。
 ---
 
-# 用户脚本 dev 模式的 CSP 坑
+# 用户脚本的 CSP：dev 调试 + 运行时兜底
+
+严格 CSP 站点上有两条独立的战线，不要混为一谈：
+
+| 战线 | 谁在拦截 | 本方案的解法 |
+| --- | --- | --- |
+| dev 调试 | 页面加载 `localhost` 模块脚本 → `script-src` | 管理器拉取产物 + 沙箱 eval，页面零外部脚本（见下） |
+| 正式版注入 | 页面里的 `<style>` / CDN 资源 → `style-src` / `script-src` / `font-src` | `csp-runtime.js` 三级回退（见「运行时兜底」） |
+
+配套文件：
+- [scripts/dev-loader.mjs](./scripts/dev-loader.mjs)：零依赖调试服务，一个命令搞定 watch 构建 + 拉取 + 热更新
+- [scripts/csp-runtime.js](./scripts/csp-runtime.js)：运行时模块，拷进项目用
 
 ## 先做 30 秒排查：脚本到底跑了没有
 
@@ -45,7 +56,24 @@ node scripts/dev-loader.mjs --bundle dist/app.user.js
 node scripts/dev-loader.mjs --bundle .dev/app.user.js --build "vite build --watch"
 ```
 
-首次打开 `http://127.0.0.1:5180/install.user.js` 安装 `xxx (dev)`，之后任意页面自动加载最新产物；产物哈希变化时整页刷新，替代 HMR。端点：`/install.user.js`、`/bundle.js`、`/__hash`、`/`。
+首次打开 `http://127.0.0.1:5180/install.user.js` 安装 `xxx (dev)`，之后任意页面自动加载最新产物。端点：`/install.user.js`、`/bundle.js`、`/__hash`、`/`。
+
+产物变化后怎么更新，按脚本能力自动选：
+
+- **默认整页刷新**：最稳，任何脚本都能用。
+- **热重执行**：脚本在页面 window 上暴露 `window.__USERSCRIPT_TEARDOWN__ = () => {...}`（或 `--hook 名字` 指定别的名字），载入器改为「调钩子 → 重新 eval」，页面状态、滚动位置都不丢。
+
+```js
+// 入口末尾：登记清理函数，dev 载入器据此热重执行（生产版无副作用）
+if (typeof unsafeWindow !== 'undefined') {
+  unsafeWindow.__USERSCRIPT_TEARDOWN__ = () => {
+    disposers.forEach((fn) => fn());
+    document.getElementById(HOST_ID)?.remove();
+  };
+}
+```
+
+`--reload` 可强制回到刷新模式。注意钩子必须**幂等且可重复调用**，并在注册前先调用上一轮留下的钩子（或让入口自己判断 `initialized` 后先 dispose），否则热重执行会叠加实例。
 
 为什么可行（照抄时别改这三处）：
 
@@ -53,14 +81,49 @@ node scripts/dev-loader.mjs --bundle .dev/app.user.js --build "vite build --watc
 - **必须直接 `eval(...)`**：间接 eval / `new Function` 会落到全局作用域，看不到管理器注入的 `GM_*`，脚本会以为没有存储能力。
 - **脚本名加 `(dev)`**：管理器按 `name + namespace` 识别脚本，同名会把正式版顶掉。配置通常存在项目自己的 storage key 里，两版自然共享。
 
+`dev-loader.mjs` 还会自动把 `@grant GM_xmlhttpRequest` 和 `@connect 127.0.0.1` 补进安装头——产物自己没声明这两个权限也能跑。
+
+## 运行时兜底：正式版在严格 CSP 站点怎么活
+
+开发期可以绕开页面 CSP，正式版不能——它就在页面里跑。把 [scripts/csp-runtime.js](./scripts/csp-runtime.js) 拷进项目（如 `src/csp.js`），所有注入点都走它：
+
+| API | 作用 |
+| --- | --- |
+| `getNonce()` / `resetNonce()` | 复用页面 `style[nonce]` / `script[nonce]`；只缓存命中的值，SPA 重建后重置 |
+| `isInlineStyleBlocked()` | 探针判断 `style-src` 是否禁了内联，据此切换降级 UI |
+| `applyStyle(css, { root, id })` | **构造式样式表 → `GM_addStyle` → 带 nonce 的 `<style>`**，返回移除函数；同 `id` 自动替换 |
+| `loadCss(href)` | 直连 `<link>`，被拦则管理器取文本再注入（注意 `@font-face` 仍受 `font-src`） |
+| `loadScript(src)` | 直连 `<script>`，被拦则管理器取源码 → 内联执行 → 再失败退到沙箱 eval |
+| `runScript(code)` | 以页面允许的方式执行源码，自动套 Trusted Types 策略 |
+
+优先级设计（照抄别改顺序）：
+
+- **构造式样式表第一**：`adoptedStyleSheets` 完全不受 `style-src` 约束，也没有 `'unsafe-inline'` 问题，还支持后续改写。ShadowRoot 与 document 都能用。
+- **`GM_addStyle` 第二**：由管理器注入，绕过页面 CSP，但只能写进页面文档，ShadowRoot 里没有对应 API。
+- **带 nonce 的 `<style>` 最后**：nonce 必须在 `appendChild` **之前**设置，之后再改无效。
+- **Trusted Types**：Gemini 这类站点在设置 `script.src` / `script.text` 时直接抛错，必须用 `createPolicy` 包一层；同名策略被别的实例占用时换随机后缀。
+- **`loadScript` 的最后一级是沙箱 eval**：CSP 管不到管理器沙箱，代价是代码拿不到页面全局作用域，只在页面连内联都不允许时触发，并打 warning。
+
+`applyStyle` 用 `WeakMap<root, Map<id, dispose>>` 记账，同 id 再注入会先移除旧的，热更新不会叠加样式。
+
 ## 接入到任意项目
 
 1. 构建产物输出到独立目录（如 `.dev/`），不要覆盖随源码提交的 `dist/`；同时关掉压缩，保留可读栈。
 2. 让产物在 dev 构建下用**不同的实例标识**（宿主元素 id、z-index 层级、菜单项文案等），否则 dev 版和正式版在同一页面会互相顶掉或叠在一起。
-3. 跑 watch 构建 + 服务，把安装地址写进文档；`.dev/` 加进 `.gitignore`，产物目录加进 ESLint ignore。
-4. 管理器侧要求：允许 eval（Tampermonkey / Violentmonkey 默认允许），注入方式保持「隔离世界 / 沙箱」，设成「页面上下文」会重新受站点 CSP 限制。
+3. 把 [dev-loader.mjs](./scripts/dev-loader.mjs) 和 [csp-runtime.js](./scripts/csp-runtime.js) 拷进项目 `scripts/`、`src/`，加两条 npm script：
 
-manifest 侧的最小授权（产物头里要有）：`@grant GM_xmlhttpRequest`、`@connect *`（或至少本地地址）、`@match *://*/*`、`@noframes`。
+   ```json
+   {
+     "scripts": {
+       "dev:csp": "node scripts/dev-loader.mjs --bundle .dev/app.user.js --build \"vite build --watch\""
+     }
+   }
+   ```
+
+4. 跑起来，把安装地址写进文档；`.dev/` 加进 `.gitignore`，产物目录加进 ESLint ignore。
+5. 管理器侧要求：允许 eval（Tampermonkey / Violentmonkey 默认允许），注入方式保持「隔离世界 / 沙箱」，设成「页面上下文」会重新受站点 CSP 限制。
+
+manifest 侧的最小授权：`@grant GM_xmlhttpRequest`、`@connect *`（或至少本地地址）、`@match *://*/*`、`@noframes`。载入器会自动补前两项。
 
 ## 坑清单
 
@@ -78,13 +141,21 @@ manifest 侧的最小授权（产物头里要有）：`@grant GM_xmlhttpRequest`
 | 自研构建不触发重建 | 改了源码，`/__hash` 还是旧值 | `node --watch` 只跟踪 import 图；用 `readFile` 取源码的构建脚本不会因源码变化重启，改用 `node --watch-path=src`，或直接上 bundler 的 watch |
 | 端口冲突 | `EADDRINUSE` | `--port` 换端口（常见做法：避开 dev server 的 5173） |
 | Chrome 142 本地网络访问 | 页面请求 `127.0.0.1` 被拦要授权 | 本方案请求由管理器发起、不经过页面，天然不受此限 |
+| 热重执行后实例叠加 | 页面里出现两份宿主、事件响应两次 | teardown 钩子必须清干净（宿主节点、监听器、定时器、observer）；入口先判断 `initialized` 再 dispose |
+| 钩子挂在沙箱 window 上找不到 | 明明注册了钩子，仍然整页刷新 | 沙箱与页面 window 不是同一个对象；钩子要挂 `unsafeWindow`，载入器会两处都查 |
+| 生产版样式整段失效 | 严格 `style-src` 站点上布局崩、日志无报错 | 用 `applyStyle`（构造式样式表优先），不要直接 `createElement('style')` |
+| CDN 资源被拦 | 图标字体 / 公式补丁不加载 | `loadCss` / `loadScript` 自动改走管理器拉取；或干脆只在支持的站点加载 |
+| Trusted Types 抛错 | Gemini 上设 `script.src` 直接 throw | 走 `runScript` / `loadScript`，内部已用 `createPolicy` 包装 |
 
 ## 与其它路线的取舍
 
 - **官方建议的 Disable-CSP 扩展**：一行代码不改，但调试期间所有站点都失去 CSP 保护，且不解决本地网络访问授权。
 - **`@require http://localhost:...`**：管理器拉取，同样不受 CSP，但管理器会缓存 `@require`，改代码要重装脚本，开发体验差。
 - **用 CDP 关掉页面 CSP**（自建 Chrome + `Page.setBypassCSP`）：保留 HMR、源码断点，代价是多一个独立浏览器实例和 Chrome 版本带来的参数差异；只有在强需求 HMR 时才选它。
+- **在页面内做多级降级**（直连 → 复用 nonce → blob 单文件包，即 `vite.config.js` 里塞一个 loader）：不用额外命令和端口，普通站点仍有 HMR；但只解决 `script-src`，样式仍受 `style-src` 约束，且要跟着打包插件内部结构走，结构一变就得 `console.warn` 提示手动放行。
 - **改成浏览器扩展（CRXJS / Plasmo）分发**：content script 由浏览器注入，天然无 CSP 问题，但要维护双构建双产物，产品形态也变了。
+
+选型建议：**调试用管理器拉取 + eval**（唯一在所有严格 CSP 站点上都成立的做法，与 `script-src` / `connect-src` / 本地网络授权全部无关）；**正式版用 `csp-runtime.js` 的三级回退**。页面内降级链只在「必须保留页面上下文或 HMR」时才有价值。
 
 ## 验证清单
 
@@ -102,5 +173,43 @@ curl -s http://127.0.0.1:5180/install.user.js -o /tmp/i.user.js && node --check 
 比静态检查更可靠：用 `happy-dom` 建页面、`node:vm` 跑 `install.user.js` 的加载器部分，把 `GM_xmlhttpRequest` 换成走本地 http 的实现，
 断言脚本自己的 banner 日志出现、没有 `[dev]` 报错。这一步能在交给浏览器之前发现「装上了但没执行」。
 注意测试脚本别放进 watch 构建的输出目录（如 `.dev/`），构建会清空该目录。
+
+这一段可以直接跑，覆盖「首次执行」和两条更新路径：
+
+```js
+import vm from 'node:vm';
+import http from 'node:http';
+import { readFile } from 'node:fs/promises';
+
+const text = await readFile('/tmp/i.user.js', 'utf8');
+const body = text.slice(text.indexOf('// ==/UserScript==') + '// ==/UserScript=='.length);
+const logs = [];
+const timers = [];
+const ctx = {
+  console: { log: (...a) => logs.push(['log', ...a]), error: (...a) => logs.push(['error', ...a]), warn: (...a) => logs.push(['warn', ...a]) },
+  location: { reload: () => logs.push(['reload']) },
+  setInterval: (fn) => { timers.push(fn); return timers.length; },
+  setTimeout: () => {},
+  URL,
+  GM_xmlhttpRequest: ({ url, onload, onerror }) => http.get(url, (res) => {
+    let data = '';
+    res.on('data', (c) => (data += c));
+    res.on('end', () => onload({ status: res.statusCode, responseText: data }));
+  }).on('error', onerror),
+};
+ctx.window = ctx;
+ctx.globalThis = ctx;
+// 模拟脚本暴露热重执行钩子；去掉这行验证整页刷新分支
+ctx.__USERSCRIPT_TEARDOWN__ = () => logs.push(['teardown']);
+vm.createContext(ctx);
+vm.runInContext(body, ctx);
+await new Promise((r) => setTimeout(r, 400));       // 首次拉取执行
+// 改产物后触发轮询，应看到 teardown + 第二次执行；没有钩子时应看到 reload
+for (const tick of timers) await tick();
+console.log(logs);
+```
+
+运行时模块也可以单测：注入一个带 `nonce` 的 `<style>` 验证 `getNonce` 缓存与 `resetNonce`，
+删掉 `globalThis.CSSStyleSheet` 验证回退到 `<style>` 且 `nonce` 属性已写入，设一个假的 `GM_addStyle` 验证它优先于 `<style>`。
 
 页面侧：安装后在严格 CSP 站点打开目标页，确认脚本自身宿主元素出现、功能可用；DevTools 的 Sources 里能看到 `userscript.dev.bundle.js`。
