@@ -200,5 +200,19 @@ cp keyboard.js.bak-<时间戳> keyboard.js
 ## 维护
 
 - 扩展从 extensions.gnome.org 更新会覆盖 `extension.js` / `keyboard.js`，补丁丢失；更新后重跑 `apply.py`。
-- 上游 `Tudmotu/gnome-shell-extension-clipboard-indicator` master 仍存在该问题（v72 验证）。可作为 issue 线索：`paste-on-select` + `move-item-first` 组合下，`_moveItemFirst` 的销毁重建发生在按键注入之前。
 - `apply.py` 按 v72 的代码文本匹配；上游改动后会报「未找到」，此时按上文手工改。
+
+## 上游进展（2026-11）
+
+- `b900579`「Move an item to the top only once the menu has closed」已合入 master：新增 `#moveItemFirstWhenClosed()`，等 `menu-closed` 再重排，修的正是本技能的主因。截至扩展 v72 **尚未发布到 EGO**。
+- `#639`（open，mergeable）：只删掉 `#pasteItem` 里粘贴后回滚剪贴板的三行，对应本技能的 revert 部分。
+- `#663`（open）：同类综合修复，已与 master 冲突。
+- `#543`（open issue）：同类症状的汇总讨论。
+- 已在 #543 补充 v72 复现与 master headless 验证，在 #639 评论支持合并。
+
+升级到包含 `b900579` 的版本后：
+
+- `apply.py` 会因 `_onMenuItemSelectedAndMenuClose` / `_refreshIndicator` 的原文不匹配而报错退出（安全，不写半截文件）。
+- 此时 `_moveItemFirst` 两处不必再改，只需保留 `#pasteItem` 的改动（去 revert、Ctrl+V、置顶延后）——如果上游仍未合并 #639。
+- `#pasteItem` 里按 `entry` 找回条目的置顶逻辑，与上游 `#moveItemFirstWhenClosed` 功能重叠，可整段删掉，只留去 revert。
+
