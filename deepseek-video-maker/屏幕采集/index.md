@@ -29,5 +29,7 @@ recording stop
 - **用 CLI 不用 MCP**：MCP `browse execute` 里 `page` 是 undefined，改用 `browse execute --file x.mjs`。
 - **Wayland 启动**：Chrome 必须以 Wayland 方式启动，先删 `Singleton*`；`pkill` 用 `pkill -f '^/opt/google/chrome/chrome'` 避免杀自己。
 - **注入假光标**：CDP 不采集系统光标，录制里没有鼠标。
+- **关掉调试横幅**：扩展 attach 标签页会让 Chrome 顶部挂「browse 已开始调试此浏览器」，会录进画面；
+  启动带 `--silent-debugger-extension-api` 才能静默，扩展侧关不掉。
 - **跳转别落后台**：点引擎默认开后台标签页，录不到；录制时把「默认打开方式」改成当前页。
 - **大模型看图很贵**：一张约 1200 token，只在关键节点看一次；先读本手册再动手。
