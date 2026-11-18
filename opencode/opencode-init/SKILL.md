@@ -128,4 +128,4 @@ applyTo: '**'
 ---
 # 4. 执行 OpenCode 初始技能(可选)
 
-让用户选择还要执行 skills/opencode/ 中哪些技能
+让用户选择还要执行 opencode/ 分组中哪些技能

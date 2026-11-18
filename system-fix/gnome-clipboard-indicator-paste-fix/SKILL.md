@@ -17,7 +17,7 @@ description: 修复 GNOME「Clipboard Indicator」扩展的两个独立问题：
 一键应用（幂等，自动备份，检测不到预期代码会直接报错且不写文件）：
 
 ```bash
-python3 ~/.config/opencode/skills/system-fix/gnome-clipboard-indicator-paste-fix/apply.py
+python3 ~/.agents/skills/system-fix/gnome-clipboard-indicator-paste-fix/apply.py
 ```
 
 验证环境：Fedora，GNOME Shell 51.1，Wayland，扩展 `clipboard-indicator@tudmotu.com` v72（上游 master 同样存在这两个问题）。

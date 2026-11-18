@@ -284,7 +284,7 @@ Display Settings / New Document / Keep Arranged… / Sort by …` 等仍是英�
 
 ```bash
 # 一键装回并热重启 DING
-bash ~/.config/opencode/skills/system-fix/gnome-desktop-context-menus/ding-i18n/reinstall.sh
+bash ~/.agents/skills/system-fix/gnome-desktop-context-menus/ding-i18n/reinstall.sh
 ```
 
 重新生成（若扩展升级导致字符串变化）：
@@ -363,7 +363,7 @@ grep -n "export function launchTerminal" "$EXT/app/desktopIconsUtil.js"
 # 4) 按第 3 节重打补丁（注意 v102 用 trySpawn + argv，不要用 shell_quote）
 
 # 5) 重装翻译并热重启
-bash ~/.config/opencode/skills/system-fix/gnome-desktop-context-menus/ding-i18n/reinstall.sh
+bash ~/.agents/skills/system-fix/gnome-desktop-context-menus/ding-i18n/reinstall.sh
 
 # 6) 校验
 node --check "$EXT/app/fileItemMenu.js"
