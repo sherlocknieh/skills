@@ -1,6 +1,6 @@
 ---
 name: agent-init
-description: 安装或修复当前 Agent 的全局指令文件，把本仓库根目录的 AGENTS.md 以符号链接装到对应路径：OpenCode 的 ~/.config/opencode/AGENTS.md、Claude Code 的 ~/.claude/CLAUDE.md、Codex 的 ~/.codex/AGENTS.md、Copilot 的 ~/.copilot/copilot-instructions.md。新会话开场、用户只打招呼（你好 / hi / hello）或说「安装全局 AGENTS.md」「全局提示词」「全局规则」「修 AGENTS.md」时触发：先静默检查链接，缺失或失效才安装，已正常则一句话说明并继续原对话；只检查已安装的 Agent，未安装的（对应配置目录不存在）一律忽略，不报缺失。关键词：agent-init、agents-init、安装全局 AGENTS.md、全局规则、全局提示词、copilot-instructions、CLAUDE.md、符号链接、重建链接、换 Agent、新机器、你好、hi、hello、开场白。
+description: 安装或修复当前 Agent 的全局指令文件，把本仓库根目录的 AGENTS.md 以符号链接装到对应路径：OpenCode 的 ~/.config/opencode/AGENTS.md、Claude Code 的 ~/.claude/CLAUDE.md、Codex 的 ~/.codex/AGENTS.md、Copilot 的 ~/.copilot/copilot-instructions.md。新会话开场、用户只打招呼（你好 / hi / hello）或只说「测试」「初始化」，或说「安装全局 AGENTS.md」「全局提示词」「全局规则」「修 AGENTS.md」时触发：先静默检查链接，缺失或失效才安装，已正常则一句话说明并继续原对话；只检查已安装的 Agent，未安装的（对应配置目录不存在）一律忽略，不报缺失。关键词：agent-init、agents-init、安装全局 AGENTS.md、全局规则、全局提示词、copilot-instructions、CLAUDE.md、符号链接、重建链接、换 Agent、新机器、你好、hi、hello、开场白、测试、初始化。
 ---
 
 # agent-init
@@ -15,13 +15,16 @@ description: 安装或修复当前 Agent 的全局指令文件，把本仓库根
 ## 何时执行
 
 - 新会话开场，或用户只说了「你好 / hi / hello」
+- 用户只说了「测试」「初始化」（用来验证触发链路，与打招呼同等处理）
 - 新机器、首次接入某个 Agent
 - 换了 Agent，或 Agent 的全局指令路径变化
 - 当前 Agent 读不到全局规则
 - 全局指令文件缺失、指向错误、或不再是链接
 - 用户说「安装全局 AGENTS.md / 全局提示词 / 全局规则」
 
-打招呼触发时只检查、不安装：确认目标链接指向 `$REPO_ROOT/AGENTS.md` 后，回一句已就绪就继续原对话，不要复述规则内容。只有缺失或失效才进入下面的安装流程。脚本幂等，但没必要每次会话都跑。
+打招呼或只说「测试」「初始化」触发时只检查、不安装：确认目标链接指向 `$REPO_ROOT/AGENTS.md` 后，回一句已就绪就继续原对话，不要复述规则内容。只有缺失或失效才进入下面的安装流程。脚本幂等，但没必要每次会话都跑。
+
+同一句话也命中其他技能时（尤其「初始化」可能同时命中 `project-init`），按 `AGENTS.md` 第 2 条第 4 款先弹窗让用户选择执行哪个，不要自行猜测或两边都跑。
 
 判断「已安装」只看该 Agent 的配置目录是否存在：`~/.config/opencode`、`~/.claude`、`~/.codex`、`~/.copilot`。目录不存在就是没装，直接略过，不算异常，也不要在回复里点名提醒。只有用户明确要求装某个没装的 Agent 时，才加 `--force`。
 

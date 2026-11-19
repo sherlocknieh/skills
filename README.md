@@ -36,7 +36,7 @@ ln -sfn $REPO_ROOT/skills/global-skills/*/ ~/.agents/skills/
 安装好全局技能后, 通过 `agent-init` 技能即可自动安装全局提示词。
 
 任意新开一个 Agent 会话，agent 会自动发现 `agent-init`；
-直接说「你好」即可, agent 会探测到关键词并触发 `agent-init` 技能;
+直接说「你好」「测试」或「初始化」即可, agent 会探测到关键词并触发 `agent-init` 技能;
 
 
 安装后任意项目会话都会加载其全部内容, 注意保持内容精简;

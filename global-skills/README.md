@@ -10,7 +10,7 @@
 global-skills/project-init/link-skills.sh --scenario global
 ```
 
-链入后新开一个 Agent 会话，说「你好」或「安装全局 AGENTS.md」即可触发 `agent-init`（已装好时只回一句已就绪）；也可手动运行 `~/.agents/skills/agent-init/install-agents.sh --agent opencode`。
+链入后新开一个 Agent 会话，说「你好」「测试」「初始化」或「安装全局 AGENTS.md」即可触发 `agent-init`（已装好时只回一句已就绪）；也可手动运行 `~/.agents/skills/agent-init/install-agents.sh --agent opencode`。
 
 ## 准入判据
 
