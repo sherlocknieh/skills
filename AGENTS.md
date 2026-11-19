@@ -14,15 +14,8 @@
 ## 常驻规则
 
 - **配置备份**：改 OpenCode 配置文件后，立即用 `opencode-backup` 备份。
-- **Copilot 镜像**：改本文件后，立刻把正文整段同步到 `~/.copilot/instructions/opencode-agents.instructions.md`（4 行 frontmatter + 正文逐字相同），并更新 `opencode-init` 里的真源副本。细则见 `opencode-init`。
+
 - **提权**：先自检 `grep -m1 NoNewPrivs /proc/self/status`；`0` 用 `sudo -A <命令>`，`1` 用 `sudo-run <命令>`。失败按 `opencode-askpass` 的格式报告，不在提权上反复试。
-- **代码改动**：遵循仓库既有规范，取最小完整集。能改现有代码就不新增实体；新功能先找现成承载点，并说明为什么其他承载点不合适。
-- **概念取舍**：先判断是同一件事的两种形态还是两件事，再决定统一还是分开；差异尽量落在数据、配置或适配器上。
-- **克制**：加代码前先想能不能让代码变少；每行都要有存在理由。
-- **UI**：能用图标就别用文字，能用系统功能就别自定义实现。
-- **注释**：每块代码上方一句目的性描述（做什么、手段、上下游），写现状不写变更史。
-- **提交**：每轮对话后改动到量就自行提交；仓库有发布脚本时走发布脚本，不先单独 `git commit`；发现会话外改动先弹框问用户如何提交，选项必须包含「直接提交」。
-- **不要自行打开浏览器调试**：改完代码只用测试、构建、类型检查验证；启动浏览器，或对已共享页面做 reload、点击、输入等操作，都必须先问我。简单的视觉变化我自己看就行。
 
 ## 按需加载
 
@@ -31,5 +24,5 @@
 | sudo/ssh 密码弹框、no new privileges、sudo-run、root 问题报告格式 | `opencode-askpass` |
 | opencode 后台服务（systemd）状态、端口、重启与「重启掐断会话」 | `opencode-service` |
 | 配置备份/恢复 | `opencode-backup` |
-| 初始化配置、改全局规则、同步 Copilot 镜像的细则 | `opencode-init` |
+| 初始化配置、改全局规则、Copilot 指令链接的细则 | `opencode-init` |
 | 代码设计取舍（勿增实体、复用优先、统一概念、极简 UI）、注释写法与反例 | `code-conventions` |
