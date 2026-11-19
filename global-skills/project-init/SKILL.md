@@ -1,20 +1,21 @@
 ---
 name: project-init
-description: 把 global 场景的常驻技能链到 ~/.agents/skills/，以及按项目场景把技能链到项目的 .agents/skills/，只向会话暴露这个项目真正需要的技能。适用于安装或调整全局常驻技能、新机器接入、换 Agent、链接失效重建；也适用于新项目接入 AI、想减少全局技能数量、切换项目类型（软件开发/系统管理/学习/内容创作）。关键词：project-init、全局技能、global-skills、常驻技能、符号链接、重建链接、项目技能初始化、按场景暴露技能、.agents/skills、接续执行 dev-init、system-init、opencode-init。全局 AGENTS.md 由常驻技能 agent-init 安装，不在本技能范围内。
+description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目场景把技能链到项目的 .agents/skills/；项目缺少 AGENTS.md 时建最小骨架，并建 .github/copilot-instructions.md 符号链接。适用于新机器接入、换 Agent、链接失效重建、新项目接入、切换项目类型（软件开发/系统管理/学习/内容创作）。关键词：project-init、全局技能、常驻技能、符号链接、重建链接、项目技能初始化、.agents/skills、AGENTS.md、copilot-instructions、接续执行 dev-init、system-init、opencode-init。全局 AGENTS.md 由 agent-init 安装，不在本技能范围。
 ---
 
 # project-init
 
-职责：一个入口，两种作用范围。
+职责：一个入口，三种作用范围。
 
 - **全局技能**：把 `global` 场景的常驻技能链到 `~/.agents/skills/`。
 - **项目技能**：按项目场景把本仓库的技能链到 `<project>/.agents/skills/`。
+- **项目提示词**：`<project>/AGENTS.md` 缺失时建最小骨架，并建 `.github/copilot-instructions.md` 指向它的符号链接。
 
-只建链接，不复制内容；仓库更新后链接自动生效。
+技能只建链接，不复制内容；仓库更新后链接自动生效。项目 `AGENTS.md` 只在缺失时建一次骨架，具体内容由 `dev-init` / `system-init` 补全。
 
 全局 `~/.agents/skills/` 只放 `global` 场景那四条常驻技能（全局规则入口 + 技能安装入口 + 技能发现入口 + 文档写作规范），不要把所有技能都装进去。其余场景技能一律按项目安装。
 
-全局 `AGENTS.md`（原 `agents-init`）不在这里安装：它由常驻全局技能 `agent-init` 负责。`agent-init` 随 `global` 场景链入 `~/.agents/skills/`，agent 会自动发现并触发。本技能只负责技能链接。
+全局 `AGENTS.md`（原 `agents-init`）不在这里安装：它由常驻全局技能 `agent-init` 负责。`agent-init` 随 `global` 场景链入 `~/.agents/skills/`，agent 会自动发现并触发。本技能只处理项目级 `AGENTS.md`。
 
 ## 何时执行
 
@@ -22,6 +23,7 @@ description: 把 global 场景的常驻技能链到 ~/.agents/skills/，以及�
 - 新机器、换了 Agent、仓库路径变更
 - 全局 `AGENTS.md` 缺失或链接失效时，先执行 `agent-init` 技能，不要用本技能补装
 - 新项目或首次接入 AI，需要决定暴露哪些技能
+- 项目缺少 `AGENTS.md` 或 `.github/copilot-instructions.md`
 - 项目类型变化，需要增删技能
 - 项目里 `.agents/skills/` 缺失、链接失效或指向旧路径
 
@@ -48,8 +50,8 @@ test -f "$REPO_ROOT/AGENTS.md" && test -d "$REPO_ROOT/global-skills/project-init
 | 范围 | 做什么 |
 | --- | --- |
 | `global` 全局技能 | 把 `global` 场景技能链到 `~/.agents/skills/` |
-| `project` 项目技能 | 只按场景把技能链到项目 `.agents/skills/` |
-| `both` 两者 | 先装全局常驻技能，再装项目技能 |
+| `project` 项目技能 | 按场景把技能链到项目 `.agents/skills/`，并建项目 `AGENTS.md` 骨架与 Copilot 链接 |
+| `both` 两者 | 先装全局常驻技能，再装项目技能与项目提示词 |
 
 判断依据：用户说“初始化这个项目”归 `project`；说“装全局技能 / 换机器”归 `global`；新机器第一次接入通常选 `both`，但前提是全局 `AGENTS.md` 已由 `agent-init` 装好。
 
@@ -124,26 +126,64 @@ rm .agents/skills/<name>
 
 不要删仓库里的技能目录，也不要删别处的同名链接。
 
-## 7. 按场景执行 init 技能
+## 7. 建项目 AGENTS.md 与 Copilot 链接
+
+项目范围（`project` / `both`）在项目根目录执行。先建最小骨架，再建链接；已有 `AGENTS.md` 不覆盖、不重写。
+
+```bash
+if [[ ! -e AGENTS.md && ! -L AGENTS.md ]]; then
+  cat > AGENTS.md <<'EOF'
+# <项目名>
+
+<一句话：项目是什么、主要技术栈>
+
+## 文档地图
+
+| 要知道什么 | 去哪里 |
+| --- | --- |
+| 目录与文件职责 | 待补充 |
+
+## 开工流程
+
+1. 定位：按文档地图找承载文件，不改无关文件。
+2. 实现：取最小完整集，能改现有代码就不新增实体。
+3. 验证：跑本项目的构建 / 测试命令，如实报告结果。
+4. 记录：重要结论写回本文件或 `docs/`。
+EOF
+fi
+
+mkdir -p .github
+ln -sfn ../AGENTS.md .github/copilot-instructions.md
+readlink .github/copilot-instructions.md   # 应为 ../AGENTS.md
+```
+
+- `<项目名>` 与一句话简介按仓库实际填写，不要留占位符；其余章节留给 init 技能补全。
+- Copilot 会读 `AGENTS.md`，但不保证最先加载；`.github/copilot-instructions.md` 保证最先注入，所以用相对符号链接指向它，不复制正文。
+- 已有指向 `AGENTS.md` 的链接：跳过。
+- 已有实体文件：内容与 `AGENTS.md` 相同就替换成链接；不同则先 `cp` 到 `.github/copilot-instructions.md.bak.<日期>` 再替换，并在报告里写出备份路径。
+- 只处理 `.github/copilot-instructions.md`，不要动 `*.instructions.md` 等模块化指令。
+- 用户明确说只要「装技能链接」时跳过本节，并在报告里写明跳过。
+
+## 8. 按场景执行 init 技能
 
 技能链接完成后，按本次选中的场景与项目目标接续执行对应的 init 技能，不要只装链接就结束：
 
 | 触发条件 | init 技能 | 作用 |
 | --- | --- | --- |
-| 选中 `dev` | `dev-init` | 探测仓库事实，创建或补齐项目根目录 `AGENTS.md` |
+| 选中 `dev` | `dev-init` | 探测仓库事实，补齐项目根目录 `AGENTS.md` 的缺失章节 |
 | 选中 `system` | `system-init` | 探测系统环境，写入或补齐 `AGENTS.md` 的系统环境章节 |
 | 本次目标包含 OpenCode 配置 | `opencode-init` | 初始化 OpenCode 配置与用户设置 |
 | 其余情况 | 无 | 没有对应的 init 技能，跳过并说明 |
 
 执行方式：读取该技能目录下的 `SKILL.md`，按其步骤继续执行；此时它的前置条件已经满足（技能已链接、仓库根已解析）。
 
-- `dev-init`：在项目根目录运行，只补缺失章节。项目 `AGENTS.md` 由它创建，project-init 自己不要创建。
+- `dev-init`：在项目根目录运行，只补缺失章节；`AGENTS.md` 与 Copilot 链接已由第 7 步建好，不要重写已有内容。
 - `system-init`：同样只补缺失章节；与 `dev-init` 同时执行时先跑 `dev-init` 建基础结构，再由 `system-init` 补「系统环境」等章节，不要重写已有内容。
 - `opencode-init`：属于全局配置，动手前先按 `opencode-rules` 备份 `~/.config/opencode`。全局规则 `AGENTS.md` 由 `agent-init` 技能以软链安装，只维护仓库真源，不要在任何技能里另存正文副本。
 - 用户明确说只要「装技能链接」时跳过本节，并在报告里写明跳过。
 - init 技能失败时不要回滚已建好的链接；报告失败原因与下一步。
 
-## 8. 校验与报告
+## 9. 校验与报告
 
 ```bash
 ls -la .agents/skills
@@ -152,4 +192,11 @@ readlink -f .agents/skills/dev-init
 
 逐项确认链接指向 `$REPO_ROOT/<分组>/<name>`，且 `SKILL.md` 存在。只报告本次实际发生的事：新建了哪些、替换了哪些、跳过了哪些、哪些因实体文件冲突未处理。
 
-不要顺带创建项目 `AGENTS.md`；那一步由 `dev-init` 负责。
+项目范围还要确认 `.github/copilot-instructions.md` 是指向 `AGENTS.md` 的相对符号链接：
+
+```bash
+readlink .github/copilot-instructions.md   # 应为 ../AGENTS.md
+readlink -f .github/copilot-instructions.md # 应等于项目根目录下的 AGENTS.md
+```
+
+项目 `AGENTS.md` 与 Copilot 链接由第 7 步创建；跳过本节或用户只要链接时，在报告里写明未创建。

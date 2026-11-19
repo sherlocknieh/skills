@@ -1,6 +1,6 @@
 ---
 name: agent-init
-description: 安装或修复当前 Agent 的全局指令文件，把本仓库根目录的 AGENTS.md 以符号链接装到对应路径：OpenCode 的 ~/.config/opencode/AGENTS.md、Claude Code 的 ~/.claude/CLAUDE.md、Codex 的 ~/.codex/AGENTS.md、Copilot 的 ~/.copilot/copilot-instructions.md。适用于新机器初始化、首次接入某个 Agent、换 Agent、全局规则缺失或链接失效、用户说装全局 AGENTS.md / 全局提示词 / 全局规则 / 修 AGENTS.md 时。关键词：agent-init、agents-init、安装全局 AGENTS.md、全局规则、全局提示词、copilot-instructions、CLAUDE.md、符号链接、重建链接、换 Agent、新机器。
+description: 安装或修复当前 Agent 的全局指令文件，把本仓库根目录的 AGENTS.md 以符号链接装到对应路径：OpenCode 的 ~/.config/opencode/AGENTS.md、Claude Code 的 ~/.claude/CLAUDE.md、Codex 的 ~/.codex/AGENTS.md、Copilot 的 ~/.copilot/copilot-instructions.md。新会话开场、用户只打招呼（你好 / hi / hello）或说「安装全局 AGENTS.md」「全局提示词」「全局规则」「修 AGENTS.md」时触发：先静默检查链接，缺失或失效才安装，已正常则一句话说明并继续原对话。关键词：agent-init、agents-init、安装全局 AGENTS.md、全局规则、全局提示词、copilot-instructions、CLAUDE.md、符号链接、重建链接、换 Agent、新机器、你好、hi、hello、开场白。
 ---
 
 # agent-init
@@ -13,13 +13,14 @@ description: 安装或修复当前 Agent 的全局指令文件，把本仓库根
 
 ## 何时执行
 
+- 新会话开场，或用户只说了「你好 / hi / hello」
 - 新机器、首次接入某个 Agent
 - 换了 Agent，或 Agent 的全局指令路径变化
 - 当前 Agent 读不到全局规则
 - 全局指令文件缺失、指向错误、或不再是链接
 - 用户说「安装全局 AGENTS.md / 全局提示词 / 全局规则」
 
-已经能正常工作时不要执行；脚本幂等，但没必要每次会话都跑。
+打招呼触发时只检查、不安装：确认目标链接指向 `$REPO_ROOT/AGENTS.md` 后，回一句已就绪就继续原对话，不要复述规则内容。只有缺失或失效才进入下面的安装流程。脚本幂等，但没必要每次会话都跑。
 
 ## 1. 定位仓库根
 
@@ -79,5 +80,7 @@ diff -q "$REPO_ROOT/AGENTS.md" ~/.config/opencode/AGENTS.md
 `diff` 无输出即通过。只报告本次实际发生的事：新建链接、改指向、替换实体文件、跳过；替换了实体文件的，列出备份路径。
 
 Copilot 用 `copilot-instructions.md` 而不是 `~/.copilot/instructions/*.instructions.md`，后者是模块化指令，同一份正文放两处会重复注入。
+
+本技能只处理全局路径；项目级 `AGENTS.md` 对应的 `<project>/.github/copilot-instructions.md` 符号链接由 `dev-init` / `system-init` 负责，不要在这里代建。
 
 全局规则只维护仓库根目录的 `AGENTS.md` 真源，不要在任何技能里另存正文副本。

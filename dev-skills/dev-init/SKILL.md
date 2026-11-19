@@ -84,15 +84,30 @@ description: 为项目初始化 AI 协作基线：探测仓库事实，创建或
 目录结构、命令或数据模型变化时同步更新本文件。
 ```
 
-## 4. 落盘
+## 4. 为 Copilot 建项目指令链接
+
+Copilot 会读 `AGENTS.md`，但不保证最先加载，可能先读到代码；`.github/copilot-instructions.md` 保证最先注入。为它建一个指向项目 `AGENTS.md` 的符号链接，不复制正文：
+
+```bash
+mkdir -p .github
+ln -sfn ../AGENTS.md .github/copilot-instructions.md
+readlink .github/copilot-instructions.md   # 应为 ../AGENTS.md
+```
+
+- 用相对链接，仓库移动或重新 clone 后仍有效。
+- 已有指向 `AGENTS.md` 的链接：跳过。
+- 已有实体文件：内容与 `AGENTS.md` 相同就替换成链接；不同则先 `cp` 到 `.github/copilot-instructions.md.bak.<日期>` 再替换，并在报告里写出备份路径。
+- 只处理 `.github/copilot-instructions.md`，不要动 `*.instructions.md` 等模块化指令。
+
+## 5. 落盘
 
 - 表格里的路径要真实可用：不预建空目录，首次记录时再建。
 - 命令必须能原样复制执行，含必要的工作目录前缀。
 
-## 5. 校验
+## 6. 校验
 
 - 每条验证命令都实际跑过一次，写清"本来是什么结果"
 - 文档地图里的每个路径存在，或标注何时创建
 - 全文没有占位符和 TODO
 
-## 6. 提交
+## 7. 提交

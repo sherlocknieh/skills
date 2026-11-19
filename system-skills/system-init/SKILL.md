@@ -67,7 +67,22 @@ hostnamectl 2>/dev/null | sed -n '1,12p'
 已知坑与根因写进 `docs/known-issues.md`；仓库已有文档体系时沿用现有目录。
 ```
 
-## 3. 校验与报告
+## 3. 为 Copilot 建项目指令链接
+
+Copilot 会读 `AGENTS.md`，但不保证最先加载，可能先读到代码；`.github/copilot-instructions.md` 保证最先注入。为它建一个指向项目 `AGENTS.md` 的符号链接，不复制正文：
+
+```bash
+mkdir -p .github
+ln -sfn ../AGENTS.md .github/copilot-instructions.md
+readlink .github/copilot-instructions.md   # 应为 ../AGENTS.md
+```
+
+- 用相对链接，仓库移动或重新 clone 后仍有效。
+- 已有指向 `AGENTS.md` 的链接：跳过。
+- 已有实体文件：内容与 `AGENTS.md` 相同就替换成链接；不同则先 `cp` 到 `.github/copilot-instructions.md.bak.<日期>` 再替换，并在报告里写出备份路径。
+- 只处理 `.github/copilot-instructions.md`，不要动 `*.instructions.md` 等模块化指令。
+
+## 4. 校验与报告
 
 - 环境表每一项都能对应到一条实际命令输出，没有占位符
 - 「验证」里的命令能原样执行，写清预期结果
