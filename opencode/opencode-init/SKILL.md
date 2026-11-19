@@ -78,7 +78,7 @@ Copilot 指令链接归本文档第 3 节。
 Copilot（CLI / VS Code Agent Host）不读 AGENTS.md，但读 `~/.copilot/copilot-instructions.md`——纯正文的通用个人指令，不需要 frontmatter。直接软链，不抄副本，两边永远一致。
 
 ```bash
-REPO_ROOT=$(dirname "$(dirname "$(readlink -f ~/.agents/skills/agents-init/SKILL.md)")")
+REPO_ROOT=$(dirname "$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")")
 mkdir -p ~/.copilot
 ln -sfn "$REPO_ROOT/AGENTS.md" ~/.copilot/copilot-instructions.md
 readlink -f ~/.copilot/copilot-instructions.md   # 必须指向 AGENTS.md

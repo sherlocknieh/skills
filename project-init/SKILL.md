@@ -1,44 +1,114 @@
 ---
 name: project-init
-description: 按项目场景把本仓库中对应的技能符号链接到当前项目的 .agents/skills/，只向会话暴露这个项目真正需要的技能。适用于新项目接入 AI、想减少全局技能数量、切换项目类型（软件开发/系统管理/学习/内容创作/opencode），或项目里的技能链接缺失、指向错误、需要重建时。关键词：project-init、项目技能初始化、按场景暴露技能、链接技能、.agents/skills、符号链接、重建链接。
+description: 一条入口完成两件事：把仓库的 AGENTS.md 符号链接到当前 Agent 的全局指令路径（原 agents-init），以及按项目场景把技能链到项目的 .agents/skills/，只向会话暴露这个项目真正需要的技能。适用于安装或修复全局提示词、新机器初始化、换 Agent、链接失效重建；也适用于新项目接入 AI、想减少全局技能数量、切换项目类型（软件开发/系统管理/学习/内容创作/opencode）。关键词：project-init、agents-init、安装全局 AGENTS.md、全局规则、copilot-instructions、符号链接、重建链接、项目技能初始化、按场景暴露技能、.agents/skills。
 ---
 
 # project-init
 
-职责：从本技能所在的 skills 仓库中，挑出当前场景需要的技能，用符号链接装到项目的 `.agents/skills/`。只建链接，不复制内容；仓库更新后链接自动生效。
+职责：一个入口，两种作用范围。
 
-全局 `~/.agents/skills/` 只放 `agents-init` 与 `project-init` 这类无处不用的技能，不要把所有技能都装进去。场景技能一律按项目安装。
+- **全局**：把仓库的 `AGENTS.md` 符号链接到当前 Agent 的全局指令路径（已合并原 `agents-init`）。
+- **项目**：按项目场景把本仓库的技能链到 `<project>/.agents/skills/`。
+
+只建链接，不复制内容；仓库更新后链接自动生效。
+
+全局 `~/.agents/skills/` 只放 `project-init` 这一个入口，不要把所有技能都装进去。场景技能一律按项目安装。
 
 ## 何时执行
 
+- 安装、修复或重建全局规则（原 `agents-init` 的场景）
+- 确认当前 Agent 读不到全局规则，或链接缺失、指向错误
+- 新机器、换了 Agent、仓库路径变更
 - 新项目或首次接入 AI，需要决定暴露哪些技能
 - 项目类型变化，需要增删技能
 - 项目里 `.agents/skills/` 缺失、链接失效或指向旧路径
 
-已能正常工作时不要重复执行，本技能是幂等的，但没必要每次会话都跑。
+已经能正常工作时不要执行，也不必每次会话都检查。本技能是幂等的，但没必要每次会话都跑。
 
-## 1. 定位技能仓库
+## 1. 定位技能仓库（两种范围共用）
 
 本技能自身位于仓库的 `project-init/` 下。全局安装时 `~/.agents/skills/project-init` 是指向仓库的符号链接，先解析真实路径：
 
 ```bash
 SKILL_DIR=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 REPO_ROOT=$(dirname "$SKILL_DIR")
-test -f "$REPO_ROOT/AGENTS.md" && echo "$REPO_ROOT"
+test -f "$REPO_ROOT/AGENTS.md" && test -d "$REPO_ROOT/project-init" && echo "$REPO_ROOT"
 ```
 
 `~/.agents/skills/project-init` 不存在时，用当前会话实际加载到的 `project-init/SKILL.md` 路径取上一级。仍不确定就问用户仓库位置，不要猜。
 
 仓库根目录必须同时有 `AGENTS.md` 和 `project-init/`。两者都对不上时停下，告诉用户把本仓库 clone 到任意固定目录（如 `~/Projects/skills`），再把 `project-init` 链到 `~/.agents/skills/`。
 
-## 2. 确认目标项目
+## 2. 确认作用范围
+
+用提问工具让用户选择，不要自行猜测：
+
+| 范围 | 做什么 |
+| --- | --- |
+| `global` 全局规则 | 只把 `AGENTS.md` 链到当前 Agent 的全局指令路径 |
+| `project` 项目技能 | 只按场景把技能链到项目 `.agents/skills/` |
+| `both` 两者 | 先装全局规则，再装项目技能 |
+
+判断依据：用户说“初始化这个项目”归 `project`；说“装全局提示词 / 修 AGENTS.md / 换机器”归 `global`；新机器第一次接入通常选 `both`。
+
+## 3. 全局：安装 AGENTS.md
+
+只处理当前 Agent 对应的那一行；路径不确定时查该 Agent 的文档，不要猜：
+
+| Agent | 全局指令路径 |
+| --- | --- |
+| OpenCode | `~/.config/opencode/AGENTS.md` |
+| Claude Code | `~/.claude/CLAUDE.md` |
+| Codex | `~/.codex/AGENTS.md` |
+| Copilot | `~/.copilot/copilot-instructions.md` |
+
+先看映射或预演动作（命令自带源路径解析，不依赖上一条命令的变量）：
+
+```bash
+REPO_ROOT=$(dirname "$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")")
+"$REPO_ROOT/project-init/install-agents.sh" --list
+"$REPO_ROOT/project-init/install-agents.sh" --agent opencode --dry-run
+```
+
+执行：
+
+```bash
+REPO_ROOT=$(dirname "$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")")
+"$REPO_ROOT/project-init/install-agents.sh" --agent opencode
+# 多个 Agent：--agent opencode --agent copilot
+# 全部：--agent all
+# 未列出的 Agent：--target <它的全局指令文件路径>
+```
+
+脚本按以下规则处理目标，重复执行安全：
+
+- 目标不存在：直接建链接。
+- 已是正确链接：跳过，不重写。
+- 是链接但指向别处：直接改指到源。
+- 是实体文件但内容相同：替换成链接。
+- 是实体文件且内容不同：先 `cp` 到 `<target>.bak.<日期>`，再替换，并在报告里写出备份路径。
+- 目标所在目录不存在：先创建目录。
+
+完成判据：
+
+```bash
+REPO_ROOT=$(dirname "$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")")
+readlink -f ~/.config/opencode/AGENTS.md   # 必须指向 $REPO_ROOT/AGENTS.md
+diff -q "$REPO_ROOT/AGENTS.md" ~/.config/opencode/AGENTS.md
+```
+
+`diff` 无输出即通过。只报告本次实际发生的事：新建链接、改指向、替换实体文件、跳过；替换了实体文件的，列出备份路径。
+
+Copilot 用 `copilot-instructions.md` 而不是 `~/.copilot/instructions/*.instructions.md`，后者是模块化指令，同一份正文放两处会重复注入；细节见 `opencode-init` 第 3 节。
+
+## 4. 确认目标项目
 
 - 在项目根目录执行；链接目标默认为 `$PWD/.agents/skills`
 - 先看现有内容：`ls -la .agents/skills 2>/dev/null`
 - 已有链接保留不动，脚本只补缺、改错指向，遇到同名实体目录会跳过而不是删除
 - 若项目实际从子目录启动 Agent，确认 `.agents/skills` 应放在仓库根目录
 
-## 3. 询问场景
+## 5. 询问场景
 
 用提问工具让用户选择，不要自行猜测。可多选，也可以补充单个技能：
 
@@ -60,7 +130,7 @@ REPO_ROOT=$(dirname "$(dirname "$(readlink -f ~/.agents/skills/project-init/SKIL
 
 用户拿不准时，按项目实际内容给一项推荐，说明理由，再让用户确认。用户选择「其他」时，先装 `find-skills`，然后问是否要补具体技能。
 
-## 4. 安装
+## 6. 安装
 
 ```bash
 REPO_ROOT=$(dirname "$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")")
@@ -85,7 +155,7 @@ rm .agents/skills/<name>
 
 不要删仓库里的技能目录，也不要删别处的同名链接。
 
-## 5. 校验与报告
+## 7. 校验与报告
 
 ```bash
 ls -la .agents/skills
