@@ -20,6 +20,9 @@ git clone https://github.com/sherlocknieh/skills.git ~/.agents/skills
 
 
 
+
+
+
 ## AGENTS.md / 全局提示词
 
 
@@ -39,3 +42,33 @@ git clone https://github.com/sherlocknieh/skills.git ~/.agents/skills
 一键安装:
 
 打开 Agent 执行 agents-init 技能, 会自动完成上述安装过程。
+
+
+
+
+
+
+## 高级安装（按项目暴露技能）
+
+标准安装会把所有技能装进 `~/.agents/skills`，每个会话都加载每条技能的 name 和 description。想按场景控制暴露范围时：
+
+1. 把仓库 clone 到任何 Agent 不会自动加载的目录，例如 `~/Projects/skills`；
+2. `~/.agents/skills/` 只链入 `agents-init` 和 `project-init`；
+3. 其余技能在具体项目里执行 `project-init`，按场景链到 `<project>/.agents/skills/`。
+
+```bash
+mkdir -p ~/Projects
+git clone https://github.com/sherlocknieh/skills.git ~/Projects/skills
+
+mkdir -p ~/.agents/skills
+ln -s ~/Projects/skills/agents-init ~/.agents/skills/agents-init
+ln -s ~/Projects/skills/project-init ~/.agents/skills/project-init
+```
+
+之后在项目根目录执行 `project-init`：
+
+- 它会询问场景（软件开发 / 系统管理 / 学习 / 内容创作 / OpenCode / 其他），可多选；
+- 只给该项目链接对应技能，仓库 `git pull` 后链接自动指向新内容；
+- 查看场景与技能对应关系：`~/.agents/skills/project-init/link-skills.sh --list`。
+
+全局提示词仍执行 `agents-init`。它按自身符号链接解析仓库根目录，不要求仓库位于 `~/.agents/skills`。
