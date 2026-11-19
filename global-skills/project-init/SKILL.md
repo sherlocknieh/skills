@@ -1,33 +1,33 @@
 ---
 name: project-init
-description: 一条入口完成三件事：把仓库的 AGENTS.md 符号链接到当前 Agent 的全局指令路径（原 agents-init），把 global 场景的常驻技能链到 ~/.agents/skills/，以及按项目场景把技能链到项目的 .agents/skills/，只向会话暴露这个项目真正需要的技能。适用于安装或修复全局提示词、安装或调整全局常驻技能、新机器初始化、换 Agent、链接失效重建；也适用于新项目接入 AI、想减少全局技能数量、切换项目类型（软件开发/系统管理/学习/内容创作）。关键词：project-init、agents-init、安装全局 AGENTS.md、全局规则、全局技能、global-skills、常驻技能、copilot-instructions、符号链接、重建链接、项目技能初始化、按场景暴露技能、.agents/skills、接续执行 dev-init、system-init、opencode-init。
+description: 把 global 场景的常驻技能链到 ~/.agents/skills/，以及按项目场景把技能链到项目的 .agents/skills/，只向会话暴露这个项目真正需要的技能。适用于安装或调整全局常驻技能、新机器接入、换 Agent、链接失效重建；也适用于新项目接入 AI、想减少全局技能数量、切换项目类型（软件开发/系统管理/学习/内容创作）。关键词：project-init、全局技能、global-skills、常驻技能、符号链接、重建链接、项目技能初始化、按场景暴露技能、.agents/skills、接续执行 dev-init、system-init、opencode-init。全局 AGENTS.md 由常驻技能 agent-init 安装，不在本技能范围内。
 ---
 
 # project-init
 
-职责：一个入口，三种作用范围。
+职责：一个入口，两种作用范围。
 
-- **全局规则**：把仓库的 `AGENTS.md` 符号链接到当前 Agent 的全局指令路径（已合并原 `agents-init`）。
 - **全局技能**：把 `global` 场景的常驻技能链到 `~/.agents/skills/`。
 - **项目技能**：按项目场景把本仓库的技能链到 `<project>/.agents/skills/`。
 
 只建链接，不复制内容；仓库更新后链接自动生效。
 
-全局 `~/.agents/skills/` 只放 `global` 场景那三条常驻技能（安装入口 + 技能发现入口 + 文档写作规范），不要把所有技能都装进去。其余场景技能一律按项目安装。
+全局 `~/.agents/skills/` 只放 `global` 场景那四条常驻技能（全局规则入口 + 技能安装入口 + 技能发现入口 + 文档写作规范），不要把所有技能都装进去。其余场景技能一律按项目安装。
+
+全局 `AGENTS.md`（原 `agents-init`）不在这里安装：它由常驻全局技能 `agent-init` 负责。`agent-init` 随 `global` 场景链入 `~/.agents/skills/`，agent 会自动发现并触发。本技能只负责技能链接。
 
 ## 何时执行
 
-- 安装、修复或重建全局规则（原 `agents-init` 的场景）
 - 安装或调整全局常驻技能（`global` 场景）
-- 确认当前 Agent 读不到全局规则，或链接缺失、指向错误
 - 新机器、换了 Agent、仓库路径变更
+- 全局 `AGENTS.md` 缺失或链接失效时，先执行 `agent-init` 技能，不要用本技能补装
 - 新项目或首次接入 AI，需要决定暴露哪些技能
 - 项目类型变化，需要增删技能
 - 项目里 `.agents/skills/` 缺失、链接失效或指向旧路径
 
 已经能正常工作时不要执行，也不必每次会话都检查。本技能是幂等的，但没必要每次会话都跑。
 
-## 1. 定位技能仓库（三种范围共用）
+## 1. 定位技能仓库（两种范围共用）
 
 本技能自身位于仓库的 `global-skills/project-init/` 下。全局安装时 `~/.agents/skills/project-init` 是指向该目录的符号链接，先解析真实路径：
 
@@ -47,64 +47,15 @@ test -f "$REPO_ROOT/AGENTS.md" && test -d "$REPO_ROOT/global-skills/project-init
 
 | 范围 | 做什么 |
 | --- | --- |
-| `global` 全局 | 把 `AGENTS.md` 链到全局指令路径，并把 `global` 场景技能链到 `~/.agents/skills/` |
+| `global` 全局技能 | 把 `global` 场景技能链到 `~/.agents/skills/` |
 | `project` 项目技能 | 只按场景把技能链到项目 `.agents/skills/` |
-| `both` 两者 | 先装全局规则与全局技能，再装项目技能 |
+| `both` 两者 | 先装全局常驻技能，再装项目技能 |
 
-判断依据：用户说“初始化这个项目”归 `project`；说“装全局提示词 / 修 AGENTS.md / 换机器”归 `global`；新机器第一次接入通常选 `both`。
+判断依据：用户说“初始化这个项目”归 `project`；说“装全局技能 / 换机器”归 `global`；新机器第一次接入通常选 `both`，但前提是全局 `AGENTS.md` 已由 `agent-init` 装好。
 
-## 3. 全局：安装 AGENTS.md
+## 3. 全局技能：装到 ~/.agents/skills/
 
-只处理当前 Agent 对应的那一行；路径不确定时查该 Agent 的文档，不要猜：
-
-| Agent | 全局指令路径 |
-| --- | --- |
-| OpenCode | `~/.config/opencode/AGENTS.md` |
-| Claude Code | `~/.claude/CLAUDE.md` |
-| Codex | `~/.codex/AGENTS.md` |
-| Copilot | `~/.copilot/copilot-instructions.md` |
-
-先看映射或预演动作（命令自带源路径解析，不依赖上一条命令的变量）：
-
-```bash
-PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
-"$PROJECT_INIT/install-agents.sh" --list
-"$PROJECT_INIT/install-agents.sh" --agent opencode --dry-run
-```
-
-执行：
-
-```bash
-PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
-"$PROJECT_INIT/install-agents.sh" --agent opencode
-# 多个 Agent：--agent opencode --agent copilot
-# 全部：--agent all
-# 未列出的 Agent：--target <它的全局指令文件路径>
-```
-
-脚本按以下规则处理目标，重复执行安全：
-
-- 目标不存在：直接建链接。
-- 已是正确链接：跳过，不重写。
-- 是链接但指向别处：直接改指到源。
-- 是实体文件但内容相同：替换成链接。
-- 是实体文件且内容不同：先 `cp` 到 `<target>.bak.<日期>`，再替换，并在报告里写出备份路径。
-- 目标所在目录不存在：先创建目录。
-
-完成判据：
-
-```bash
-PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
-REPO_ROOT=$(dirname "$(dirname "$PROJECT_INIT")")
-readlink -f ~/.config/opencode/AGENTS.md   # 必须指向 $REPO_ROOT/AGENTS.md
-diff -q "$REPO_ROOT/AGENTS.md" ~/.config/opencode/AGENTS.md
-```
-
-`diff` 无输出即通过。只报告本次实际发生的事：新建链接、改指向、替换实体文件、跳过；替换了实体文件的，列出备份路径。
-
-Copilot 用 `copilot-instructions.md` 而不是 `~/.copilot/instructions/*.instructions.md`，后者是模块化指令，同一份正文放两处会重复注入。
-
-`global` 范围除了规则，还要装全局技能：
+`global` 范围只装常驻技能；全局 `AGENTS.md` 由 `agent-init` 技能负责，本技能不改它。
 
 ```bash
 PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
@@ -112,6 +63,8 @@ PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 ```
 
 只选 `global` 场景且没给 `--dest` 时，脚本默认写到 `~/.agents/skills`。装完 `readlink -f ~/.agents/skills/<name>` 应指向 `$REPO_ROOT/global-skills/<name>`。
+
+若发现全局 `AGENTS.md` 缺失或失效：停止本技能，让用户先执行 `agent-init` 技能（或手动运行 `~/.agents/skills/agent-init/install-agents.sh --agent <当前 Agent>`），然后再回来装技能。不要在本技能里代装。
 
 ## 4. 确认目标项目
 
@@ -186,7 +139,7 @@ rm .agents/skills/<name>
 
 - `dev-init`：在项目根目录运行，只补缺失章节。项目 `AGENTS.md` 由它创建，project-init 自己不要创建。
 - `system-init`：同样只补缺失章节；与 `dev-init` 同时执行时先跑 `dev-init` 建基础结构，再由 `system-init` 补「系统环境」等章节，不要重写已有内容。
-- `opencode-init`：属于全局配置，动手前先按 `opencode-rules` 备份 `~/.config/opencode`。全局规则 `AGENTS.md` 由本技能的 `install-agents.sh` 以软链安装，只维护仓库真源，不要在任何技能里另存正文副本。
+- `opencode-init`：属于全局配置，动手前先按 `opencode-rules` 备份 `~/.config/opencode`。全局规则 `AGENTS.md` 由 `agent-init` 技能以软链安装，只维护仓库真源，不要在任何技能里另存正文副本。
 - 用户明确说只要「装技能链接」时跳过本节，并在报告里写明跳过。
 - init 技能失败时不要回滚已建好的链接；报告失败原因与下一步。
 

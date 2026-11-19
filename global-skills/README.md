@@ -2,17 +2,23 @@
 
 常驻技能。安装到 `~/.agents/skills/`，每个项目会话都会加载它们的 name 和 description。
 
+其中 `agent-init` 负责安装全局 `AGENTS.md`：它随本组技能链入 `~/.agents/skills/`，agent 每个会话都会看到它的 name 和 description，在需要时自动发现并触发。全局规则不由 `project-init` 安装。
+
+在仓库根目录运行：
+
 ```bash
 global-skills/project-init/link-skills.sh --scenario global
 ```
 
+链入后新开一个 Agent 会话，直接说「安装全局 AGENTS.md」即可触发 `agent-init`；也可手动运行 `~/.agents/skills/agent-init/install-agents.sh --agent opencode`。
+
 ## 准入判据
 
-三条同时满足才放这里：
+三条判据同时满足才放这里：
 
 1. **触发条件与项目类型无关**——写代码、修系统、学东西、做内容都可能用到；
 2. **缺失会让行为明显变差**——不是「有时更方便」，而是没有它就会漏步骤或走错路；
-3. **常驻成本可接受**——description 精简，全部加起来控制在 1.2KB 以内。
+3. **常驻成本可接受**——description 精简，全部加起来控制在 2KB 以内。
 
 领域专用技能（`dev-skills/`、`system-skills/`、`learning-skills/`、`user-skills/`）一律按项目安装。
 
@@ -20,11 +26,12 @@ global-skills/project-init/link-skills.sh --scenario global
 
 | 技能 | 为什么常驻 |
 | --- | --- |
-| `project-init` | 唯一安装入口；缺了就没法装规则和项目技能 |
+| `agent-init` | 全局规则的安装入口；agent 自动发现并触发，缺了就读不到全局 `AGENTS.md` |
+| `project-init` | 技能安装入口；缺了就没法按场景装技能 |
 | `find-skills` | 全局技能刻意装得少，需要兜底发现外部技能 |
 | `writing-for-agents` | 每个项目都可能要改 `AGENTS.md`、写技能文档 |
 
-三条合计约 1.2KB frontmatter。
+四条合计约 1.9KB frontmatter。
 
 ## 拆分记录
 

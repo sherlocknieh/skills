@@ -79,6 +79,7 @@ normalize_scenario() {
 scenario_skills() {
   case "$1" in
     global) cat <<'EOF'
+global-skills/agent-init
 global-skills/project-init
 global-skills/find-skills
 global-skills/writing-for-agents

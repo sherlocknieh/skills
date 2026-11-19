@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# project-init: 把仓库的 AGENTS.md 符号链接到当前 Agent 的全局指令路径（原 agents-init）
+# agent-init: 把仓库根目录的 AGENTS.md 符号链接到当前 Agent 的全局指令路径（原 agents-init）
+# 作为常驻全局技能提供，由 agent 自动发现并触发，不依赖 project-init 或项目安装。
 set -euo pipefail
 
 if ((BASH_VERSINFO[0] < 4)); then
