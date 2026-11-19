@@ -3,3 +3,6 @@ opencode/opencode-backup/new/skills/
 opencode/opencode-backup/old/skills/
 opencode/opencode-backup/new/service.json
 opencode/opencode-backup/old/service.json
+
+# 本地参考资料（体积大，不随仓库分发）
+quick-tools/deepseek-video-maker/第三方skill参考/
