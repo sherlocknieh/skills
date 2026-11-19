@@ -179,7 +179,7 @@ readlink .github/copilot-instructions.md   # 应为 ../AGENTS.md
 
 - `dev-init`：在项目根目录运行，只补缺失章节；`AGENTS.md` 与 Copilot 链接已由第 7 步建好，不要重写已有内容。
 - `system-init`：同样只补缺失章节；与 `dev-init` 同时执行时先跑 `dev-init` 建基础结构，再由 `system-init` 补「系统环境」等章节，不要重写已有内容。
-- `opencode-init`：属于全局配置，动手前先按 `opencode-rules` 备份 `~/.config/opencode`。全局规则 `AGENTS.md` 由 `agent-init` 技能以软链安装，只维护仓库真源，不要在任何技能里另存正文副本。
+- `opencode-init`：属于全局配置，动手前先备份 `~/.config/opencode`（备份放本机，不进技能目录）。全局规则 `AGENTS.md` 由 `agent-init` 技能以软链安装，只维护仓库真源，不要在任何技能里另存正文副本。
 - 用户明确说只要「装技能链接」时跳过本节，并在报告里写明跳过。
 - init 技能失败时不要回滚已建好的链接；报告失败原因与下一步。
 

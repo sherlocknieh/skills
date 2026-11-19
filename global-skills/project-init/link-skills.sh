@@ -111,7 +111,6 @@ system-skills/keyboard-lock-clean
 system-skills/linux-bluetooth-force-a2dp
 system-skills/linux-wifi-hotspot-concurrent
 system-skills/opencode-askpass
-system-skills/opencode-backup
 system-skills/opencode-init
 system-skills/opencode-rules
 system-skills/opencode-service

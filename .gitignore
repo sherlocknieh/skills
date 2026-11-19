@@ -1,8 +1,3 @@
-system-skills/opencode-backup/new/skills/
-system-skills/opencode-backup/old/skills/
-system-skills/opencode-backup/new/service.json
-system-skills/opencode-backup/old/service.json
-
 # 本地参考资料（体积大，不随仓库分发）
 user-skills/deepseek-video-maker/第三方skill参考/
 __pycache__/

@@ -47,4 +47,4 @@ description: "OpenCode 初始化：修改用户设置、执行一些技能"
 
 # 2. 执行 OpenCode 初始技能(可选)
 
-让用户选择还要执行哪些 OpenCode 相关技能（如 `opencode-askpass`、`opencode-backup`、`opencode-service`）
+让用户选择还要执行哪些 OpenCode 相关技能（如 `opencode-askpass`、`opencode-service`）
