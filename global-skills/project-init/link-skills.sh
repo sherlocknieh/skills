@@ -81,6 +81,7 @@ scenario_skills() {
     global) cat <<'EOF'
 global-skills/project-init
 global-skills/find-skills
+global-skills/writing-for-agents
 EOF
       ;;
     dev) cat <<'EOF'
@@ -93,7 +94,7 @@ dev-skills/wizard
 dev-skills/handoff
 learning-skills/research
 learning-skills/wait-what
-learning-skills/writing-for-agents
+global-skills/writing-for-agents
 learning-skills/grilling
 EOF
       ;;
@@ -132,7 +133,7 @@ EOF
 user-skills/deepseek-video-maker
 user-skills/pdf-toc-bookmarks
 learning-skills/research
-learning-skills/writing-for-agents
+global-skills/writing-for-agents
 dev-skills/wizard
 EOF
       ;;

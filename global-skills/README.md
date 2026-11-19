@@ -12,7 +12,7 @@ global-skills/project-init/link-skills.sh --scenario global
 
 1. **触发条件与项目类型无关**——写代码、修系统、学东西、做内容都可能用到；
 2. **缺失会让行为明显变差**——不是「有时更方便」，而是没有它就会漏步骤或走错路；
-3. **常驻成本可接受**——description 精简，全部加起来控制在 1KB 左右。
+3. **常驻成本可接受**——description 精简，全部加起来控制在 1.2KB 以内。
 
 领域专用技能（`dev-skills/`、`system-skills/`、`learning-skills/`、`user-skills/`）一律按项目安装。
 
@@ -22,8 +22,9 @@ global-skills/project-init/link-skills.sh --scenario global
 | --- | --- |
 | `project-init` | 唯一安装入口；缺了就没法装规则和项目技能 |
 | `find-skills` | 全局技能刻意装得少，需要兜底发现外部技能 |
+| `writing-for-agents` | 每个项目都可能要改 `AGENTS.md`、写技能文档 |
 
-两条合计约 1KB frontmatter。
+三条合计约 1.2KB frontmatter。
 
 ## 拆分记录
 
@@ -31,14 +32,13 @@ global-skills/project-init/link-skills.sh --scenario global
 
 | 技能 | 去处 | 为什么不再常驻 |
 | --- | --- | --- |
-| `writing-for-agents` | `learning-skills/` | 只在改 AGENTS.md、写技能文档时触发 |
 | `handoff` | `dev-skills/` | 项目收尾才用，不是每会话都发生 |
 | `wizard` | `dev-skills/` | 一次性配置、迁移与凭据设置 |
 | `diagnosing-bugs` | `dev-skills/` | 只在报错、变慢时启动，行为侵入性强 |
 | `research` | `learning-skills/` | 以调研、学习为目的 |
 | `wait-what` | `learning-skills/` | 重新解释与理解纠偏 |
 
-`research`、`wait-what`、`wizard`、`writing-for-agents` 等仍被 dev/system/create 场景按需引用，只是不再常驻。
+`research`、`wait-what`、`wizard` 等仍被 dev/system/create 场景按需引用，只是不再常驻。
 
 ## 增删流程
 

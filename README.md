@@ -8,12 +8,13 @@
 安装后任意项目会话都会加载每条技能的 name 和 description, 注意不要装太多;
 具体项目专用技能应安装在项目目录下: `<project>/.agents/skills`。
 
-`global-skills/` 下只放 2 条核心常驻技能，frontmatter 约 1KB：
+`global-skills/` 下只放 3 条核心常驻技能，frontmatter 约 1.2KB：
 
 | 技能 | 作用 |
 | --- | --- |
 | `project-init` | 安装入口：全局规则 + 按场景链技能 |
 | `find-skills` | 发现并安装外部技能 |
+| `writing-for-agents` | 写 AGENTS.md / 技能文档 |
 
 其余技能按域存放：开发流程在 `dev-skills/`，教学与调研在 `learning-skills/`，系统配置在 `system-skills/`，产出型任务在 `user-skills/`；它们由场景清单按需暴露，不常驻。
 
