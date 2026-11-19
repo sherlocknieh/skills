@@ -81,26 +81,20 @@ scenario_skills() {
     global) cat <<'EOF'
 global-skills/project-init
 global-skills/find-skills
-global-skills/writing-for-agents
-global-skills/handoff
-global-skills/wait-what
-global-skills/research
-global-skills/wizard
-global-skills/diagnosing-bugs
 EOF
       ;;
     dev) cat <<'EOF'
 dev-skills/code-conventions
 dev-skills/dev-init
 dev-skills/userscript-dev
-global-skills/diagnosing-bugs
-global-skills/writing-for-agents
-global-skills/research
-global-skills/wizard
-global-skills/handoff
-global-skills/wait-what
-matt-skills/grilling
-matt-skills/retro
+dev-skills/retro
+dev-skills/diagnosing-bugs
+dev-skills/wizard
+dev-skills/handoff
+learning-skills/research
+learning-skills/wait-what
+learning-skills/writing-for-agents
+learning-skills/grilling
 EOF
       ;;
     system) cat <<'EOF'
@@ -121,25 +115,25 @@ system-skills/opencode-rules
 system-skills/opencode-service
 system-skills/system-init
 system-skills/xdg-user-dirs-english
-global-skills/diagnosing-bugs
-global-skills/research
-global-skills/wizard
-global-skills/wait-what
+dev-skills/diagnosing-bugs
+learning-skills/research
+dev-skills/wizard
+learning-skills/wait-what
 EOF
       ;;
     learn) cat <<'EOF'
-matt-skills/teach
-global-skills/research
-global-skills/wait-what
-matt-skills/grilling
+learning-skills/teach
+learning-skills/research
+learning-skills/wait-what
+learning-skills/grilling
 EOF
       ;;
     create) cat <<'EOF'
 user-skills/deepseek-video-maker
 user-skills/pdf-toc-bookmarks
-global-skills/research
-global-skills/wizard
-global-skills/writing-for-agents
+learning-skills/research
+learning-skills/writing-for-agents
+dev-skills/wizard
 EOF
       ;;
     other) printf 'global-skills/find-skills\n' ;;
