@@ -13,7 +13,7 @@ description: "OpenCode 自身的常驻工作规则：改 OpenCode 配置后立�
 
 - 算「OpenCode 配置文件」的：`~/.config/opencode/` 下的 `opencode.json`、`cli.json`、`AGENTS.md`、`plugins/`、askpass 脚本等。
 - 例外：`service.json` 含认证 token，不备份、不进版本控制，重启服务会自动重建。
-- 改的是全局规则 `AGENTS.md` 时，注意它是多处分身：真源是仓库根目录的 `AGENTS.md`（`readlink -f ~/.agents/skills/project-init/SKILL.md` 的上一级），`~/.config/opencode/AGENTS.md` 与 `~/.copilot/copilot-instructions.md` 均为软链，只改真源，不要在任何技能里另存正文副本。安装与修链细则见 `project-init` 第 3 节。
+- 改的是全局规则 `AGENTS.md` 时，注意它是多处分身：真源是仓库根目录的 `AGENTS.md`（`readlink -f ~/.agents/skills/project-init/SKILL.md` 取上两级），`~/.config/opencode/AGENTS.md` 与 `~/.copilot/copilot-instructions.md` 均为软链，只改真源，不要在任何技能里另存正文副本。安装与修链细则见 `project-init` 第 3 节。
 
 ## 2. 提权
 

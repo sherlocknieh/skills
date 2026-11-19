@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# project-init: 按场景把本仓库的技能符号链接到项目的 .agents/skills/
+# project-init: 按场景把本仓库的技能符号链接到项目的 .agents/skills/（global 场景装到 ~/.agents/skills/）
 set -euo pipefail
 
 if ((BASH_VERSINFO[0] < 4)); then
@@ -8,7 +8,7 @@ if ((BASH_VERSINFO[0] < 4)); then
 fi
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd -P)
-SOURCE_ROOT=$(dirname -- "$SCRIPT_DIR")
+SOURCE_ROOT=$(dirname -- "$(dirname -- "$SCRIPT_DIR")")
 DEST_ROOT=""
 DRY_RUN=0
 LIST_ONLY=0
@@ -25,6 +25,7 @@ usage() {
 用法: link-skills.sh --scenario <场景> [--scenario <场景> ...] [选项] [技能 ...]
 
 场景:
+  global    全局（常驻所有会话，默认装入 ~/.agents/skills）
   dev       软件开发
   system    系统管理（含 OpenCode 自身配置）
   learn     学习
@@ -32,8 +33,9 @@ usage() {
   other     其他（find-skills）
 
 选项:
-  --source <目录>  技能仓库根目录（默认：本脚本的上一级）
-  --dest <目录>    链接目标目录（默认：$PWD/.agents/skills）
+  --source <目录>  技能仓库根目录（默认：本脚本的上两级）
+  --dest <目录>    链接目标目录（默认：$PWD/.agents/skills；
+                   只选 global 场景时为 ~/.agents/skills）
   --dry-run        只打印动作，不创建链接
   --list           列出场景及对应技能
   -h, --help       显示帮助
@@ -43,6 +45,7 @@ usage() {
   用于场景之外的单点补充。同名技能只会链接一次。
 
 示例:
+  link-skills.sh --scenario global
   link-skills.sh --scenario dev
   link-skills.sh --scenario system --scenario learn
   link-skills.sh --scenario other diagnosing-bugs
@@ -51,6 +54,7 @@ EOF
 
 scenario_label() {
   case "$1" in
+    global) printf '全局' ;;
     dev) printf '软件开发' ;;
     system) printf '系统管理' ;;
     learn) printf '学习' ;;
@@ -62,6 +66,7 @@ scenario_label() {
 
 normalize_scenario() {
   case "$1" in
+    global|全局) printf 'global' ;;
     dev|软件开发) printf 'dev' ;;
     system|系统管理) printf 'system' ;;
     learn|学习) printf 'learn' ;;
@@ -73,18 +78,29 @@ normalize_scenario() {
 
 scenario_skills() {
   case "$1" in
+    global) cat <<'EOF'
+global-skills/project-init
+global-skills/find-skills
+global-skills/writing-for-agents
+global-skills/handoff
+global-skills/wait-what
+global-skills/research
+global-skills/wizard
+global-skills/diagnosing-bugs
+EOF
+      ;;
     dev) cat <<'EOF'
 dev-skills/code-conventions
 dev-skills/dev-init
 dev-skills/userscript-dev
-matt-skills/diagnosing-bugs
-matt-skills/writing-for-agents
-matt-skills/research
-matt-skills/wizard
+global-skills/diagnosing-bugs
+global-skills/writing-for-agents
+global-skills/research
+global-skills/wizard
+global-skills/handoff
+global-skills/wait-what
 matt-skills/grilling
-matt-skills/handoff
 matt-skills/retro
-matt-skills/wait-what
 EOF
       ;;
     system) cat <<'EOF'
@@ -105,28 +121,28 @@ system-skills/opencode-rules
 system-skills/opencode-service
 system-skills/system-init
 system-skills/xdg-user-dirs-english
-matt-skills/diagnosing-bugs
-matt-skills/research
-matt-skills/wizard
-matt-skills/wait-what
+global-skills/diagnosing-bugs
+global-skills/research
+global-skills/wizard
+global-skills/wait-what
 EOF
       ;;
     learn) cat <<'EOF'
 matt-skills/teach
-matt-skills/research
-matt-skills/wait-what
+global-skills/research
+global-skills/wait-what
 matt-skills/grilling
 EOF
       ;;
     create) cat <<'EOF'
 user-skills/deepseek-video-maker
 user-skills/pdf-toc-bookmarks
-matt-skills/research
-matt-skills/wizard
-matt-skills/writing-for-agents
+global-skills/research
+global-skills/wizard
+global-skills/writing-for-agents
 EOF
       ;;
-    other) printf 'find-skills\n' ;;
+    other) printf 'global-skills/find-skills\n' ;;
     *) return 1 ;;
   esac
 }
@@ -149,7 +165,7 @@ while (($#)); do
       for _part in "${_parts[@]}"; do
         [[ -z $_part ]] && continue
         _normalized=$(normalize_scenario "$_part") \
-          || die "未知场景: $_part（可选 dev/system/learn/create/other）"
+          || die "未知场景: $_part（可选 global/dev/system/learn/create/other）"
         SCENARIOS+=("$_normalized")
       done
       shift 2
@@ -178,12 +194,12 @@ done
 
 [[ -d $SOURCE_ROOT ]] || die "源目录不存在: $SOURCE_ROOT"
 SOURCE_ROOT=$(cd -- "$SOURCE_ROOT" && pwd -P)
-[[ -f $SOURCE_ROOT/project-init/link-skills.sh ]] \
-  || die "源目录不像 skills 仓库: $SOURCE_ROOT（缺少 project-init/）"
+[[ -f $SOURCE_ROOT/global-skills/project-init/link-skills.sh ]] \
+  || die "源目录不像 skills 仓库: $SOURCE_ROOT（缺少 global-skills/project-init/）"
 
 if ((LIST_ONLY)); then
   printf '可用场景：\n'
-  for _scenario in dev system learn create other; do
+  for _scenario in global dev system learn create other; do
     printf '\n  %-8s %s\n' "$_scenario" "$(scenario_label "$_scenario")"
     while IFS= read -r _rel; do
       printf '    - %s\n' "$_rel"
@@ -196,7 +212,7 @@ fi
 (( ${#SCENARIOS[@]} + ${#EXPLICIT[@]} > 0 )) || die "至少指定一个 --scenario 或技能名"
 
 for _scenario in "${SCENARIOS[@]}"; do
-  scenario_label "$_scenario" >/dev/null || die "未知场景: $_scenario（可选 dev/system/learn/create/other）"
+  scenario_label "$_scenario" >/dev/null || die "未知场景: $_scenario（可选 global/dev/system/learn/create/other）"
 done
 
 resolve_skill() {
@@ -249,7 +265,20 @@ for _arg in "${EXPLICIT[@]}"; do
   add_skill "$_rel"
 done
 
-DEST_ROOT=${DEST_ROOT:-$PWD/.agents/skills}
+if [[ -z $DEST_ROOT ]]; then
+  _only_global=0
+  if (( ${#SCENARIOS[@]} > 0 )); then
+    _only_global=1
+    for _scenario in "${SCENARIOS[@]}"; do
+      [[ $_scenario == global ]] || _only_global=0
+    done
+  fi
+  if ((_only_global)); then
+    DEST_ROOT=$HOME/.agents/skills
+  else
+    DEST_ROOT=$PWD/.agents/skills
+  fi
+fi
 if ((DRY_RUN)); then
   printf '目标目录: %s（dry-run，不写入）\n\n' "$DEST_ROOT"
 else

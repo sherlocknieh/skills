@@ -8,7 +8,7 @@ if ((BASH_VERSINFO[0] < 4)); then
 fi
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd -P)
-SOURCE_ROOT=$(dirname -- "$SCRIPT_DIR")
+SOURCE_ROOT=$(dirname -- "$(dirname -- "$SCRIPT_DIR")")
 SOURCE="$SOURCE_ROOT/AGENTS.md"
 DRY_RUN=0
 LIST_ONLY=0
@@ -35,7 +35,7 @@ Agent 与全局指令路径:
 选项:
   --agent <名字>   目标 Agent，可多次指定或用逗号分隔
   --target <路径>  直接指定全局指令路径，可多次指定
-  --source <目录>  技能仓库根目录（默认：本脚本的上一级）
+  --source <目录>  技能仓库根目录（默认：本脚本的上两级）
   --dry-run        只打印动作，不写入
   --list           列出 Agent 与路径映射
   -h, --help       显示帮助
