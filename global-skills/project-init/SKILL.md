@@ -9,9 +9,9 @@ description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目�
 
 - **全局技能**：把 `global` 场景的常驻技能链到 `~/.agents/skills/`。
 - **项目技能**：按项目场景把本仓库的技能链到 `<project>/.agents/skills/`。
-- **项目提示词**：`<project>/AGENTS.md` 缺失时建最小骨架，并建 `.github/copilot-instructions.md` 指向它的符号链接。
+- **项目提示词**：`<project>/AGENTS.md` 缺失时建最小骨架，已有则只补缺失的「自动提交」小节，并建 `.github/copilot-instructions.md` 指向它的符号链接。
 
-技能只建链接，不复制内容；仓库更新后链接自动生效。项目 `AGENTS.md` 只在缺失时建一次骨架，具体内容由 `dev-init` / `system-init` 补全。
+技能只建链接，不复制内容；仓库更新后链接自动生效。项目 `AGENTS.md` 只在缺失时建一次骨架，已有文件不重写，只补「自动提交」约定；其余章节由 `dev-init` / `system-init` 补全。
 
 全局 `~/.agents/skills/` 只放 `global` 场景那四条常驻技能（全局规则入口 + 技能安装入口 + 技能发现入口 + 文档写作规范），不要把所有技能都装进去。其余场景技能一律按项目安装。
 
@@ -128,7 +128,7 @@ rm .agents/skills/<name>
 
 ## 7. 建项目 AGENTS.md 与 Copilot 链接
 
-项目范围（`project` / `both`）在项目根目录执行。先建最小骨架，再建链接；已有 `AGENTS.md` 不覆盖、不重写。
+项目范围（`project` / `both`）在项目根目录执行。先建最小骨架，再建链接；已有 `AGENTS.md` 不覆盖、不重写，只补缺失的「自动提交」小节。
 
 ```bash
 if [[ ! -e AGENTS.md && ! -L AGENTS.md ]]; then
@@ -156,12 +156,19 @@ if [[ ! -e AGENTS.md && ! -L AGENTS.md ]]; then
 EOF
 fi
 
+# 已有 AGENTS.md：只补缺失的「自动提交」小节，其他内容不动
+if [[ -e AGENTS.md ]] && ! grep -q '^## 自动提交' AGENTS.md; then
+  printf '\n## 自动提交\n\n每轮对话后自行提交（除非只有单处微小细节改动）；仓库有发布脚本时走发布脚本，不先单独 `git commit`；发现会话外改动先弹框问用户如何提交。\n' >> AGENTS.md
+fi
+
 mkdir -p .github
 ln -sfn ../AGENTS.md .github/copilot-instructions.md
 readlink .github/copilot-instructions.md   # 应为 ../AGENTS.md
 ```
 
 - `<项目名>` 与一句话简介按仓库实际填写，不要留占位符；其余章节留给 init 技能补全。
+- 「自动提交」小节是项目的固定约定，不是可选章节：骨架里自带；已有 `AGENTS.md` 缺它时追加到末尾，已有则跳过（`grep -q '^## 自动提交'`）。
+- `AGENTS.md` 是符号链接时，追加到它指向的文件，不要替换链接本身。
 - Copilot 会读 `AGENTS.md`，但不保证最先加载；`.github/copilot-instructions.md` 保证最先注入，所以用相对符号链接指向它，不复制正文。
 - 已有指向 `AGENTS.md` 的链接：跳过。
 - 已有实体文件：内容与 `AGENTS.md` 相同就替换成链接；不同则先 `cp` 到 `.github/copilot-instructions.md.bak.<日期>` 再替换，并在报告里写出备份路径。
@@ -203,4 +210,8 @@ readlink .github/copilot-instructions.md   # 应为 ../AGENTS.md
 readlink -f .github/copilot-instructions.md # 应等于项目根目录下的 AGENTS.md
 ```
 
-项目 `AGENTS.md` 与 Copilot 链接由第 7 步创建；跳过本节或用户只要链接时，在报告里写明未创建。
+项目 `AGENTS.md`、其中的「自动提交」小节与 Copilot 链接由第 7 步处理；报告里写明是新建骨架、补了「自动提交」还是两者都已存在（跳过）。跳过本节或用户只要链接时，写明未创建。
+
+```bash
+grep -n '^## 自动提交' AGENTS.md   # 应能命中一行
+```
