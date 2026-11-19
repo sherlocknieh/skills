@@ -13,6 +13,7 @@ SOURCE_ROOT=$(dirname -- "$(dirname -- "$SCRIPT_DIR")")
 SOURCE="$SOURCE_ROOT/AGENTS.md"
 DRY_RUN=0
 LIST_ONLY=0
+FORCE=0
 AGENTS=()
 TARGETS=()
 
@@ -37,6 +38,7 @@ Agent 与全局指令路径:
   --agent <名字>   目标 Agent，可多次指定或用逗号分隔
   --target <路径>  直接指定全局指令路径，可多次指定
   --source <目录>  技能仓库根目录（默认：本脚本的上两级）
+  --force          未安装的 Agent 也照样建链接（默认跳过）
   --dry-run        只打印动作，不写入
   --list           列出 Agent 与路径映射
   -h, --help       显示帮助
@@ -57,6 +59,23 @@ agent_path() {
     copilot) printf '%s\n' "$HOME/.copilot/copilot-instructions.md" ;;
     *) return 1 ;;
   esac
+}
+
+# Agent 的配置目录：存在才算装了该 Agent，避免给没装的 Agent 建空目录和链接。
+agent_home() {
+  case "$1" in
+    opencode) printf '%s\n' "$HOME/.config/opencode" ;;
+    claude) printf '%s\n' "$HOME/.claude" ;;
+    codex) printf '%s\n' "$HOME/.codex" ;;
+    copilot) printf '%s\n' "$HOME/.copilot" ;;
+    *) return 1 ;;
+  esac
+}
+
+agent_installed() {
+  local home
+  home=$(agent_home "$1") || return 1
+  [[ -d $home ]]
 }
 
 normalize_agent() {
@@ -105,6 +124,10 @@ while (($#)); do
       DRY_RUN=1
       shift
       ;;
+    --force)
+      FORCE=1
+      shift
+      ;;
     --list)
       LIST_ONLY=1
       shift
@@ -125,7 +148,12 @@ done
 if ((LIST_ONLY)); then
   printf '可用 Agent：\n'
   for _agent in opencode claude codex copilot; do
-    printf '  %-8s %s\n' "$_agent" "$(agent_path "$_agent")"
+    if agent_installed "$_agent"; then
+      _state=已安装
+    else
+      _state=未安装
+    fi
+    printf '  %-8s %-6s %s\n' "$_agent" "$_state" "$(agent_path "$_agent")"
   done
   exit 0
 fi
@@ -149,11 +177,20 @@ add_target() {
 }
 
 for _agent in "${AGENTS[@]}"; do
+  if (( ! FORCE )) && ! agent_installed "$_agent"; then
+    printf '  - %s（未安装，跳过）\n' "$_agent"
+    continue
+  fi
   add_target "$(agent_path "$_agent")"
 done
 for _target in "${TARGETS[@]}"; do
   add_target "$_target"
 done
+
+if (( ${#ORDER[@]} == 0 )); then
+  printf '\n没有需要处理的 Agent：指定的 Agent 都未安装，用 --force 可强制安装。\n'
+  exit 0
+fi
 
 created=0
 replaced=0
