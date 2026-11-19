@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目场景把技能链到项目的 .agents/skills/；项目缺少 AGENTS.md 时建最小骨架，并建 .github/copilot-instructions.md 符号链接。适用于新机器接入、换 Agent、链接失效重建、新项目接入、切换项目类型（软件开发/系统管理/学习/内容创作）。用户在对话中（非开头）说「提交」时也触发本技能：先弹窗确认，再继续原本要做的事。关键词：提交、project-init、全局技能、常驻技能、符号链接、重建链接、项目技能初始化、.agents/skills、AGENTS.md、copilot-instructions、接续执行 dev-init、system-init、opencode-init。全局 AGENTS.md 由 agent-init 安装，不在本技能范围。
+description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目场景把技能链到项目的 .agents/skills/；项目缺少 AGENTS.md 时建最小骨架，并建 .github/copilot-instructions.md 符号链接。适用于新机器接入、换 Agent、链接失效重建、新项目接入、切换项目类型（软件开发/系统管理/学习/内容创作）。用户在对话中（非开头）只说「提交」时也触发本技能：这通常意味着项目还没初始化自动提交规则，先弹窗说明这一点并询问是否现在初始化，再继续原本要做的事。关键词：提交、project-init、全局技能、常驻技能、符号链接、重建链接、项目技能初始化、.agents/skills、AGENTS.md、copilot-instructions、接续执行 dev-init、system-init、opencode-init。全局 AGENTS.md 由 agent-init 安装，不在本技能范围。
 ---
 
 # project-init
@@ -26,8 +26,26 @@ description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目�
 - 项目缺少 `AGENTS.md` 或 `.github/copilot-instructions.md`
 - 项目类型变化，需要增删技能
 - 项目里 `.agents/skills/` 缺失、链接失效或指向旧路径
+- 用户在对话中（非开头）只说「提交」时，按下一节处理
 
 已经能正常工作时不要执行，也不必每次会话都检查。本技能是幂等的，但没必要每次会话都跑。
+
+## 用户手动说「提交」
+
+用户手动发出「提交」，说明项目**还没有**自动提交约定，否则不用他开口。先确认是否真未初始化：
+
+```bash
+grep -q '^## 自动提交' AGENTS.md && echo rules-ok
+test -d .agents/skills && echo skills-ok
+```
+
+两条都命中时不要重复初始化，直接按项目既有约定提交本次改动，并说明已初始化。
+
+未命中时先弹窗，问句直接点明原因与后果，不要只问「要不要初始化」：
+
+> 检测到你手动发出「提交」指令，说明本项目还没初始化，没有拿到「自动提交」规则（缺少 `AGENTS.md` 的「自动提交」小节或技能链接）。要现在初始化吗？初始化后每轮对话结束我会按约定自动提交，你就不用再手动说「提交」了。
+
+选项：「现在初始化（project）」/「跳过，仅提交这一次」。选初始化则走 `project` 范围；选跳过则只做本次提交，不要补任何文件。
 
 ## 1. 定位技能仓库（两种范围共用）
 
