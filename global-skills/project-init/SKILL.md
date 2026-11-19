@@ -77,16 +77,16 @@ PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 
 ## 5. 询问场景
 
-用提问工具让用户选择，不要自行猜测。可多选，也可以补充单个技能：
+用提问工具让用户选择，不要自行猜测。可多选，也可以补充单个技能。按项目当前主要做什么来选：
 
-| 场景 | 适合的项目 |
+| 场景 | 简要说明 |
 | --- | --- |
-| `global` 全局技能 | 常驻所有会话的安装入口与跨项目元技能；一般只在初始化机器时装一次 |
-| `dev` 软件开发 | 写代码、修 bug、做用户脚本 |
-| `system` 系统管理 | Linux 桌面、Fedora、GNOME、硬件与外设修复、OpenCode 自身配置 |
-| `learn` 学习 | 以理解概念、跟学一项技能为主 |
-| `create` 内容创作 | 视频、PDF、文档等产出型工作 |
-| `other` 其他 | 先确认 `find-skills` 已在全局，再按需补 |
+| `global` 全局技能 | 常驻所有会话的入口技能：装技能、装全局提示词、找技能、写文档规范。只在初始化机器或换 Agent 时选一次 |
+| `dev` 软件开发 | 写代码、修 bug、做用户脚本的流程技能：代码规范、项目初始化、调试、复盘、向导、交接 |
+| `system` 系统管理 | Linux 桌面与硬件排障：Fedora、GNOME、蓝牙、输入法、远程桌面，以及 OpenCode 自身配置 |
+| `learn` 学习 | 以理解概念、跟学一项技能为主：系统讲解、资料调研、要求重讲、追问式压测 |
+| `create` 内容创作 | 视频、PDF、文档等产出型工作：视频制作、PDF 书签整理、资料调研、写作规范 |
+| `other` 其他 | 以上都不贴切时选。不装默认技能（`find-skills` 已在全局），按名补装项目需要的技能，如 `other diagnosing-bugs` |
 
 需要看每个场景包含哪些技能时，运行（命令自带源路径解析，不依赖上一条命令的变量）：
 
@@ -95,7 +95,7 @@ PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 "$PROJECT_INIT/link-skills.sh" --list
 ```
 
-用户拿不准时，按项目实际内容给一项推荐，说明理由，再让用户确认。用户选择「其他」时，确认 `find-skills` 已随 `global` 场景装好，然后问是否要补具体技能。
+用户拿不准时，按项目实际内容给一项推荐，说明理由，再让用户确认。用户选择「其他」时，不要往项目里装 `find-skills`（它已随 `global` 常驻全局），只问要补哪些具体技能；没给技能名就说明 other 不装默认技能，让用户补。
 
 选中 `dev` 或 `system` 时，安装后会在第 7 节接续执行 `dev-init` / `system-init`；若本次目标包含 OpenCode 配置，再按需执行 `opencode-init`。用户不需要时当场确认跳过。
 
@@ -114,6 +114,7 @@ PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 - `--dry-run` 先看将执行的动作
 - 脚本用绝对路径建链接；不要改成相对路径，也不要改成复制，否则仓库更新不会同步
 - 目标同名实体目录不会被覆盖；先和用户确认其中内容，再决定是否备份移走
+- `other` 不装默认技能，必须跟技能名；只给 `--scenario other` 会报错退出
 
 安装后每个技能应满足 `.agents/skills/<name>/SKILL.md` 可读。
 

@@ -30,7 +30,7 @@ usage() {
   system    系统管理（含 OpenCode 自身配置）
   learn     学习
   create    内容创作
-  other     其他（find-skills）
+  other     其他（不装默认技能，需附具体技能名）
 
 选项:
   --source <目录>  技能仓库根目录（默认：本脚本的上两级）
@@ -137,7 +137,7 @@ global-skills/writing-for-agents
 dev-skills/wizard
 EOF
       ;;
-    other) printf 'global-skills/find-skills\n' ;;
+    other) : ;;
     *) return 1 ;;
   esac
 }
@@ -196,9 +196,14 @@ if ((LIST_ONLY)); then
   printf '可用场景：\n'
   for _scenario in global dev system learn create other; do
     printf '\n  %-8s %s\n' "$_scenario" "$(scenario_label "$_scenario")"
-    while IFS= read -r _rel; do
-      printf '    - %s\n' "$_rel"
-    done < <(scenario_skills "$_scenario")
+    _skills=$(scenario_skills "$_scenario")
+    if [[ -z $_skills ]]; then
+      printf '    （不装默认技能，需附具体技能名）\n'
+    else
+      while IFS= read -r _rel; do
+        printf '    - %s\n' "$_rel"
+      done <<< "$_skills"
+    fi
   done
   printf '\n技能详情可用 %s --scenario <场景> --dry-run 查看。\n' "$(basename -- "$0")"
   exit 0
@@ -259,6 +264,9 @@ for _arg in "${EXPLICIT[@]}"; do
   _rel=$(resolve_skill "$_arg") || exit 1
   add_skill "$_rel"
 done
+
+(( ${#ORDER[@]} > 0 )) \
+  || die "未选中任何技能：other 场景不装默认技能，请附具体技能名（如 --scenario other diagnosing-bugs）"
 
 if [[ -z $DEST_ROOT ]]; then
   _only_global=0
