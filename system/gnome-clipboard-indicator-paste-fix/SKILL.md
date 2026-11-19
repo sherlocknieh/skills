@@ -18,7 +18,7 @@ description: 修复 GNOME「Clipboard Indicator」扩展的两个独立问题：
 
 ```bash
 # 项目内安装优先，标准全局安装回退
-SKILL_DIR=$(dirname "$(readlink -f .agents/skills/gnome-clipboard-indicator-paste-fix/SKILL.md 2>/dev/null || readlink -f ~/.agents/skills/system-fix/gnome-clipboard-indicator-paste-fix/SKILL.md)")
+SKILL_DIR=$(dirname "$(readlink -f .agents/skills/gnome-clipboard-indicator-paste-fix/SKILL.md 2>/dev/null || readlink -f ~/.agents/skills/system/gnome-clipboard-indicator-paste-fix/SKILL.md)")
 python3 "$SKILL_DIR/apply.py"
 ```
 

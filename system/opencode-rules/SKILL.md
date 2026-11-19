@@ -13,7 +13,7 @@ description: "OpenCode 自身的常驻工作规则：改 OpenCode 配置后立�
 
 - 算「OpenCode 配置文件」的：`~/.config/opencode/` 下的 `opencode.json`、`cli.json`、`AGENTS.md`、`plugins/`、askpass 脚本等。
 - 例外：`service.json` 含认证 token，不备份、不进版本控制，重启服务会自动重建。
-- 改的是全局规则 `AGENTS.md` 时，注意它是多处分身：真源是仓库根目录的 `AGENTS.md`（`readlink -f ~/.agents/skills/project-init/SKILL.md` 的上一级），`~/.config/opencode/AGENTS.md` 与 `~/.copilot/copilot-instructions.md` 均为软链；`opencode-init` 第 2 节还内嵌一份正文副本，需同步。细则见 `opencode-init`。
+- 改的是全局规则 `AGENTS.md` 时，注意它是多处分身：真源是仓库根目录的 `AGENTS.md`（`readlink -f ~/.agents/skills/project-init/SKILL.md` 的上一级），`~/.config/opencode/AGENTS.md` 与 `~/.copilot/copilot-instructions.md` 均为软链，只改真源，不要在任何技能里另存正文副本。安装与修链细则见 `project-init` 第 3 节。
 
 ## 2. 提权
 
@@ -36,6 +36,6 @@ grep -m1 NoNewPrivs /proc/self/status
 | sudo/ssh 密码弹框、no new privileges、sudo-run、root 问题报告格式 | `opencode-askpass` |
 | opencode 后台服务（systemd）状态、端口、重启与「重启掐断会话」 | `opencode-service` |
 | 配置备份/恢复 | `opencode-backup` |
-| 初始化配置、改全局规则、Copilot 指令链接的细则 | `opencode-init` |
+| OpenCode 配置初始化、用户设置的细则 | `opencode-init` |
 
 代码与注释规范不属于 OpenCode 自身，见 `code-conventions` 技能。

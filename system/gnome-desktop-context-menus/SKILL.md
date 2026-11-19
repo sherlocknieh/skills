@@ -284,7 +284,7 @@ Display Settings / New Document / Keep Arranged… / Sort by …` 等仍是英�
 
 ```bash
 # 项目内安装优先，标准全局安装回退
-SKILL_DIR=$(dirname "$(readlink -f .agents/skills/gnome-desktop-context-menus/SKILL.md 2>/dev/null || readlink -f ~/.agents/skills/system-fix/gnome-desktop-context-menus/SKILL.md)")
+SKILL_DIR=$(dirname "$(readlink -f .agents/skills/gnome-desktop-context-menus/SKILL.md 2>/dev/null || readlink -f ~/.agents/skills/system/gnome-desktop-context-menus/SKILL.md)")
 # 一键装回并热重启 DING
 bash "$SKILL_DIR/ding-i18n/reinstall.sh"
 ```
@@ -365,7 +365,7 @@ grep -n "export function launchTerminal" "$EXT/app/desktopIconsUtil.js"
 # 4) 按第 3 节重打补丁（注意 v102 用 trySpawn + argv，不要用 shell_quote）
 
 # 5) 重装翻译并热重启（项目内安装优先，标准全局安装回退）
-SKILL_DIR=$(dirname "$(readlink -f .agents/skills/gnome-desktop-context-menus/SKILL.md 2>/dev/null || readlink -f ~/.agents/skills/system-fix/gnome-desktop-context-menus/SKILL.md)")
+SKILL_DIR=$(dirname "$(readlink -f .agents/skills/gnome-desktop-context-menus/SKILL.md 2>/dev/null || readlink -f ~/.agents/skills/system/gnome-desktop-context-menus/SKILL.md)")
 bash "$SKILL_DIR/ding-i18n/reinstall.sh"
 
 # 6) 校验
