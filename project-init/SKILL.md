@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: 一条入口完成两件事：把仓库的 AGENTS.md 符号链接到当前 Agent 的全局指令路径（原 agents-init），以及按项目场景把技能链到项目的 .agents/skills/，只向会话暴露这个项目真正需要的技能。适用于安装或修复全局提示词、新机器初始化、换 Agent、链接失效重建；也适用于新项目接入 AI、想减少全局技能数量、切换项目类型（软件开发/系统管理/学习/内容创作/opencode）。关键词：project-init、agents-init、安装全局 AGENTS.md、全局规则、copilot-instructions、符号链接、重建链接、项目技能初始化、按场景暴露技能、.agents/skills。
+description: 一条入口完成两件事：把仓库的 AGENTS.md 符号链接到当前 Agent 的全局指令路径（原 agents-init），以及按项目场景把技能链到项目的 .agents/skills/，只向会话暴露这个项目真正需要的技能。适用于安装或修复全局提示词、新机器初始化、换 Agent、链接失效重建；也适用于新项目接入 AI、想减少全局技能数量、切换项目类型（软件开发/系统管理/学习/内容创作）。关键词：project-init、agents-init、安装全局 AGENTS.md、全局规则、copilot-instructions、符号链接、重建链接、项目技能初始化、按场景暴露技能、.agents/skills、接续执行 dev-init、opencode-init。
 ---
 
 # project-init
@@ -115,10 +115,9 @@ Copilot 用 `copilot-instructions.md` 而不是 `~/.copilot/instructions/*.instr
 | 场景 | 适合的项目 |
 | --- | --- |
 | `dev` 软件开发 | 写代码、修 bug、做用户脚本 |
-| `system` 系统管理 | Linux 桌面、Fedora、GNOME、硬件与外设修复 |
+| `system` 系统管理 | Linux 桌面、Fedora、GNOME、硬件与外设修复、OpenCode 自身配置 |
 | `learn` 学习 | 以理解概念、跟学一项技能为主 |
 | `create` 内容创作 | 视频、PDF、文档等产出型工作 |
-| `opencode` OpenCode 自身配置 | 改 `~/.config/opencode`、服务与提权 |
 | `other` 其他 | 先装 `find-skills`，再按需补 |
 
 需要看每个场景包含哪些技能时，运行（命令自带源路径解析，不依赖上一条命令的变量）：
@@ -129,6 +128,8 @@ REPO_ROOT=$(dirname "$(dirname "$(readlink -f ~/.agents/skills/project-init/SKIL
 ```
 
 用户拿不准时，按项目实际内容给一项推荐，说明理由，再让用户确认。用户选择「其他」时，先装 `find-skills`，然后问是否要补具体技能。
+
+选中 `dev` 时，安装后会在第 7 节接续执行 `dev-init`；若本次目标包含 OpenCode 配置，再按需执行 `opencode-init`。用户不需要时当场确认跳过。
 
 ## 6. 安装
 
@@ -155,7 +156,24 @@ rm .agents/skills/<name>
 
 不要删仓库里的技能目录，也不要删别处的同名链接。
 
-## 7. 校验与报告
+## 7. 按场景执行 init 技能
+
+技能链接完成后，按本次选中的场景与项目目标接续执行对应的 init 技能，不要只装链接就结束：
+
+| 触发条件 | init 技能 | 作用 |
+| --- | --- | --- |
+| 选中 `dev` | `dev-init` | 探测仓库事实，创建或补齐项目根目录 `AGENTS.md` |
+| 本次目标包含 OpenCode 配置 | `opencode-init` | 初始化 OpenCode 配置、全局规则与 Copilot 指令链接 |
+| 其余情况 | 无 | 没有对应的 init 技能，跳过并说明 |
+
+执行方式：读取该技能目录下的 `SKILL.md`，按其步骤继续执行；此时它的前置条件已经满足（技能已链接、仓库根已解析）。
+
+- `dev-init`：在项目根目录运行，只补缺失章节。项目 `AGENTS.md` 由它创建，project-init 自己不要创建。
+- `opencode-init`：属于全局配置，动手前先按 `opencode-rules` 备份 `~/.config/opencode`。若 `~/.config/opencode/AGENTS.md` 已是本仓库 `AGENTS.md` 的软链，第 2 节不要把内嵌正文写成实体文件——先 `diff` 内嵌正文与仓库真源，把差异并入仓库 `AGENTS.md`，保持软链不变，否则会透过软链改掉真源。
+- 用户明确说只要「装技能链接」时跳过本节，并在报告里写明跳过。
+- init 技能失败时不要回滚已建好的链接；报告失败原因与下一步。
+
+## 8. 校验与报告
 
 ```bash
 ls -la .agents/skills

@@ -70,8 +70,9 @@ ln -s ~/Projects/skills/project-init ~/.agents/skills/project-init
 
 之后在项目根目录执行 `project-init`：
 
-- 它会询问场景（软件开发 / 系统管理 / 学习 / 内容创作 / OpenCode / 其他），可多选；
+- 它会询问场景（软件开发 / 系统管理 / 学习 / 内容创作 / 其他），可多选；OpenCode 自身配置归在「系统管理」场景；
 - 只给该项目链接对应技能，仓库 `git pull` 后链接自动指向新内容；
+- 安装后按场景接续执行 init 技能：`dev` → `dev-init`（创建/补齐项目 `AGENTS.md`），需要配置 OpenCode 时再执行 `opencode-init`；
 - 查看场景与技能对应关系：`~/.agents/skills/project-init/link-skills.sh --list`。
 
 全局提示词也由 `project-init` 安装：选「全局规则」，或单独运行 `project-init/install-agents.sh --agent opencode`。它按自身符号链接解析仓库根目录，不要求仓库位于 `~/.agents/skills`。

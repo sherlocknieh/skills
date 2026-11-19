@@ -26,10 +26,9 @@ usage() {
 
 场景:
   dev       软件开发
-  system    系统管理
+  system    系统管理（含 OpenCode 自身配置）
   learn     学习
   create    内容创作
-  opencode  OpenCode 自身配置
   other     其他（find-skills）
 
 选项:
@@ -56,7 +55,6 @@ scenario_label() {
     system) printf '系统管理' ;;
     learn) printf '学习' ;;
     create) printf '内容创作' ;;
-    opencode) printf 'OpenCode 自身配置' ;;
     other) printf '其他' ;;
     *) return 1 ;;
   esac
@@ -68,7 +66,6 @@ normalize_scenario() {
     system|系统管理) printf 'system' ;;
     learn|学习) printf 'learn' ;;
     create|内容创作) printf 'create' ;;
-    opencode|OpenCode|opencode自身配置) printf 'opencode' ;;
     other|其他) printf 'other' ;;
     *) return 1 ;;
   esac
@@ -101,6 +98,11 @@ system-fix/inputactions-gnome-mouse-gesture-overlay
 system-fix/keyboard-lock-clean
 system-fix/linux-bluetooth-force-a2dp
 system-fix/linux-wifi-hotspot-concurrent
+system-fix/opencode-askpass
+system-fix/opencode-backup
+system-fix/opencode-init
+system-fix/opencode-rules
+system-fix/opencode-service
 system-fix/xdg-user-dirs-english
 matt-skills/diagnosing-bugs
 matt-skills/research
@@ -121,14 +123,6 @@ quick-tools/pdf-toc-bookmarks
 matt-skills/research
 matt-skills/wizard
 matt-skills/writing-for-agents
-EOF
-      ;;
-    opencode) cat <<'EOF'
-opencode/opencode-rules
-opencode/opencode-init
-opencode/opencode-backup
-opencode/opencode-askpass
-opencode/opencode-service
 EOF
       ;;
     other) printf 'find-skills\n' ;;
@@ -154,7 +148,7 @@ while (($#)); do
       for _part in "${_parts[@]}"; do
         [[ -z $_part ]] && continue
         _normalized=$(normalize_scenario "$_part") \
-          || die "未知场景: $_part（可选 dev/system/learn/create/opencode/other）"
+          || die "未知场景: $_part（可选 dev/system/learn/create/other）"
         SCENARIOS+=("$_normalized")
       done
       shift 2
@@ -188,7 +182,7 @@ SOURCE_ROOT=$(cd -- "$SOURCE_ROOT" && pwd -P)
 
 if ((LIST_ONLY)); then
   printf '可用场景：\n'
-  for _scenario in dev system learn create opencode other; do
+  for _scenario in dev system learn create other; do
     printf '\n  %-8s %s\n' "$_scenario" "$(scenario_label "$_scenario")"
     while IFS= read -r _rel; do
       printf '    - %s\n' "$_rel"
@@ -201,7 +195,7 @@ fi
 (( ${#SCENARIOS[@]} + ${#EXPLICIT[@]} > 0 )) || die "至少指定一个 --scenario 或技能名"
 
 for _scenario in "${SCENARIOS[@]}"; do
-  scenario_label "$_scenario" >/dev/null || die "未知场景: $_scenario（可选 dev/system/learn/create/opencode/other）"
+  scenario_label "$_scenario" >/dev/null || die "未知场景: $_scenario（可选 dev/system/learn/create/other）"
 done
 
 resolve_skill() {
