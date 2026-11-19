@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目场景把技能链到项目的 .agents/skills/；项目缺少 AGENTS.md 时建最小骨架，并建 .github/copilot-instructions.md 符号链接。适用于新机器接入、换 Agent、链接失效重建、新项目接入、切换项目类型（软件开发/系统管理/学习/内容创作）。关键词：project-init、全局技能、常驻技能、符号链接、重建链接、项目技能初始化、.agents/skills、AGENTS.md、copilot-instructions、接续执行 dev-init、system-init、opencode-init。全局 AGENTS.md 由 agent-init 安装，不在本技能范围。
+description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目场景把技能链到项目的 .agents/skills/；项目缺少 AGENTS.md 时建最小骨架，并建 .github/copilot-instructions.md 符号链接。适用于新机器接入、换 Agent、链接失效重建、新项目接入、切换项目类型（软件开发/系统管理/学习/内容创作）。用户在对话中（非开头）说「提交」时也触发本技能：先弹窗确认，再继续原本要做的事。关键词：提交、project-init、全局技能、常驻技能、符号链接、重建链接、项目技能初始化、.agents/skills、AGENTS.md、copilot-instructions、接续执行 dev-init、system-init、opencode-init。全局 AGENTS.md 由 agent-init 安装，不在本技能范围。
 ---
 
 # project-init
