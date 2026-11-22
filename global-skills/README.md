@@ -12,13 +12,15 @@ global-skills/project-init/link-skills.sh --scenario global
 
 链入后新开一个 Agent 会话，说「你好」「测试」「初始化」或「安装全局 AGENTS.md」即可触发 `agent-init`（已装好时只回一句已就绪）；也可手动运行 `~/.agents/skills/agent-init/install-agents.sh --agent opencode`。
 
+会话中出现明确任务（如「修一下输入法」）时，`skill-router` 会识别工作类型，并提议临时加载、链接安装或复制安装对应场景的技能。
+
 ## 准入判据
 
 三条判据同时满足才放这里：
 
 1. **触发条件与项目类型无关**——写代码、修系统、学东西、做内容都可能用到；
 2. **缺失会让行为明显变差**——不是「有时更方便」，而是没有它就会漏步骤或走错路；
-3. **常驻成本可接受**——description 精简，全部加起来控制在 2KB 以内。
+3. **常驻成本可接受**——description 精简，全部加起来控制在 3KB 以内。
 
 领域专用技能（`dev-skills/`、`system-skills/`、`learning-skills/`、`user-skills/`）一律按项目安装。
 
@@ -28,10 +30,11 @@ global-skills/project-init/link-skills.sh --scenario global
 | --- | --- |
 | `agent-init` | 全局规则的安装入口；agent 自动发现并触发，缺了就读不到全局 `AGENTS.md` |
 | `project-init` | 技能安装入口；缺了就没法按场景装技能 |
+| `skill-router` | 会话中识别工作类型并按需提议加载；缺了就不会主动提示安装对口技能 |
 | `find-skills` | 全局技能刻意装得少，需要兜底发现外部技能 |
 | `writing-for-agents` | 每个项目都可能要改 `AGENTS.md`、写技能文档 |
 
-四条合计约 1.9KB frontmatter。
+五条合计约 2.7KB frontmatter（按 UTF-8 字节计）。
 
 ## 拆分记录
 

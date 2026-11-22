@@ -50,3 +50,5 @@ ln -sfn $REPO_ROOT/skills/global-skills/*/ ~/.agents/skills/
 VS Code Copilot 无法保证最先加载到 `AGENTS.md`, 只能保证最先加载的是 `.github/copilot-instructions.md`，所以需创建符号链接 `.github/copilot-instructions.md` 指向 `AGENTS.md`;
 
 使用技能 `project-init` 会完成上述安装和符号链接创建，并触发对应场景的 init 技能完成更细致的配置。
+
+会话中首次出现明确领域任务时，常驻技能 `skill-router` 会识别工作类型，并提议临时加载、链接安装或复制安装对应场景的技能；不需要每次手动执行 `project-init`。

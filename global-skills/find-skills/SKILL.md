@@ -34,7 +34,9 @@ The Skills CLI (`npx skills`) is the package manager for the open agent skills e
 
 ### Step 1: Understand What They Need
 
-When a user asks for help with something, identify:
+先看本地是否已有对口技能：任务属于软件开发、系统管理、学习或内容创作时，检查本项目 `.agents/skills/` 与 `~/.agents/skills/`。本仓库已有匹配技能时交给 `skill-router`（临时加载、链接安装或复制安装），不要再去外部搜索。
+
+外部搜索前，先识别：
 
 1. The domain (e.g., React, testing, design, deployment)
 2. The specific task (e.g., writing tests, creating animations, reviewing PRs)

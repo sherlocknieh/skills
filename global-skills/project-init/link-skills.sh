@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# project-init: 按场景把本仓库的技能符号链接到项目的 .agents/skills/（global 场景装到 ~/.agents/skills/）
+# project-init: 按场景把本仓库的技能链接或复制到 .agents/skills/（global 场景装到 ~/.agents/skills/）
 set -euo pipefail
 
 if ((BASH_VERSINFO[0] < 4)); then
@@ -10,6 +10,7 @@ fi
 SCRIPT_DIR=$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")" && pwd -P)
 SOURCE_ROOT=$(dirname -- "$(dirname -- "$SCRIPT_DIR")")
 DEST_ROOT=""
+MODE=link
 DRY_RUN=0
 LIST_ONLY=0
 SCENARIOS=()
@@ -34,9 +35,10 @@ usage() {
 
 选项:
   --source <目录>  技能仓库根目录（默认：本脚本的上两级）
-  --dest <目录>    链接目标目录（默认：$PWD/.agents/skills；
+  --dest <目录>    目标目录（默认：$PWD/.agents/skills；
                    只选 global 场景时为 ~/.agents/skills）
-  --dry-run        只打印动作，不创建链接
+  --copy           复制技能内容而不是建符号链接；目标已存在时跳过，不覆盖
+  --dry-run        只打印动作，不写文件
   --list           列出场景及对应技能
   -h, --help       显示帮助
 
@@ -48,6 +50,7 @@ usage() {
   link-skills.sh --scenario global
   link-skills.sh --scenario dev
   link-skills.sh --scenario system --scenario learn
+  link-skills.sh --scenario system --copy
   link-skills.sh --scenario other diagnosing-bugs
 EOF
 }
@@ -81,6 +84,7 @@ scenario_skills() {
     global) cat <<'EOF'
 global-skills/agent-init
 global-skills/project-init
+global-skills/skill-router
 global-skills/find-skills
 global-skills/writing-for-agents
 EOF
@@ -164,6 +168,10 @@ while (($#)); do
         SCENARIOS+=("$_normalized")
       done
       shift 2
+      ;;
+    --copy)
+      MODE=copy
+      shift
       ;;
     --dry-run)
       DRY_RUN=1
@@ -304,6 +312,30 @@ for name in "${ORDER[@]}"; do
     continue
   fi
 
+  if [[ $MODE == copy ]]; then
+    case $link in
+      "$src"|"$src"/*) die "复制目标不能位于源技能目录内: $link" ;;
+    esac
+    if [[ -e $link || -L $link ]]; then
+      printf '  跳过 %s：目标已存在（%s），未覆盖\n' "$name" "$link" >&2
+      ((skipped += 1))
+      continue
+    fi
+    if ((DRY_RUN)); then
+      printf '  + %s（将复制 <- %s）\n' "$name" "$rel"
+    else
+      mkdir -p -- "$link"
+      cp -a -- "$src/." "$link/"
+      printf '  + %s（已复制 <- %s）\n' "$name" "$rel"
+    fi
+    ((created += 1))
+    if ((!DRY_RUN)) && [[ ! -f $link/SKILL.md ]]; then
+      printf '  失败 %s：复制后读不到 SKILL.md\n' "$name" >&2
+      ((failed += 1))
+    fi
+    continue
+  fi
+
   if [[ -L $link ]]; then
     current=$(readlink -f -- "$link" || true)
     if [[ $current == "$src" ]]; then
@@ -340,6 +372,7 @@ for name in "${ORDER[@]}"; do
 done
 
 printf '\n结果：新建 %d，替换 %d，跳过 %d，失败 %d\n' "$created" "$replaced" "$skipped" "$failed"
+printf '方式：%s\n' "$([[ $MODE == copy ]] && echo 复制 || echo 符号链接)"
 printf '目标：%s\n' "$DEST_ROOT"
 
 ((failed == 0))

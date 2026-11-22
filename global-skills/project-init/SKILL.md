@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目场景把技能链到项目的 .agents/skills/；项目缺少 AGENTS.md 时建最小骨架，并建 .github/copilot-instructions.md 符号链接。适用于新机器接入、换 Agent、链接失效重建、新项目接入、切换项目类型（软件开发/系统管理/学习/内容创作）。用户在对话中（非开头）只说「提交」时也触发本技能：这通常意味着项目还没初始化自动提交规则，先弹窗说明这一点并询问是否现在初始化，再继续原本要做的事。关键词：提交、project-init、全局技能、常驻技能、符号链接、重建链接、项目技能初始化、.agents/skills、AGENTS.md、copilot-instructions、接续执行 dev-init、system-init、opencode-init。全局 AGENTS.md 由 agent-init 安装，不在本技能范围。
+description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目场景把技能链到项目的 .agents/skills/；项目缺少 AGENTS.md 时建最小骨架，并建 .github/copilot-instructions.md 符号链接。适用于新机器接入、换 Agent、链接失效重建、新项目接入、切换项目类型（软件开发/系统管理/学习/内容创作）。用户在对话中（非开头）只说「提交」时也触发本技能：这通常意味着项目还没初始化自动提交规则，先弹窗说明这一点并询问是否现在初始化，再继续原本要做的事。关键词：提交、project-init、全局技能、常驻技能、符号链接、复制安装、重建链接、项目技能初始化、.agents/skills、AGENTS.md、copilot-instructions、接续执行 dev-init、system-init、opencode-init。全局 AGENTS.md 由 agent-init 安装，不在本技能范围。
 ---
 
 # project-init
@@ -8,14 +8,16 @@ description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目�
 职责：一个入口，三种作用范围。
 
 - **全局技能**：把 `global` 场景的常驻技能链到 `~/.agents/skills/`。
-- **项目技能**：按项目场景把本仓库的技能链到 `<project>/.agents/skills/`。
+- **项目技能**：按项目场景把本仓库的技能链接或复制到 `<project>/.agents/skills/`。
 - **项目提示词**：`<project>/AGENTS.md` 缺失时建最小骨架，已有则只补缺失的「自动提交」小节，并建 `.github/copilot-instructions.md` 指向它的符号链接。
 
-技能只建链接，不复制内容；仓库更新后链接自动生效。项目 `AGENTS.md` 只在缺失时建一次骨架，已有文件不重写，只补「自动提交」约定；其余章节由 `dev-init` / `system-init` 补全。
+技能默认建链接，不复制内容；需要固定版本或在项目内修改技能时才用 `--copy` 复制。仓库更新后链接自动生效。项目 `AGENTS.md` 只在缺失时建一次骨架，已有文件不重写，只补「自动提交」约定；其余章节由 `dev-init` / `system-init` 补全。
 
-全局 `~/.agents/skills/` 只放 `global` 场景那四条常驻技能（全局规则入口 + 技能安装入口 + 技能发现入口 + 文档写作规范），不要把所有技能都装进去。其余场景技能一律按项目安装。
+全局 `~/.agents/skills/` 只放 `global` 场景那五条常驻技能（全局规则入口 + 技能安装入口 + 按需路由 + 技能发现入口 + 文档写作规范），不要把所有技能都装进去。其余场景技能一律按项目安装。
 
 全局 `AGENTS.md`（原 `agents-init`）不在这里安装：它由常驻全局技能 `agent-init` 负责。`agent-init` 随 `global` 场景链入 `~/.agents/skills/`，agent 会自动发现并触发。本技能只处理项目级 `AGENTS.md`。
+
+分工：显式初始化、切换场景、重建链接用 `project-init`；会话中按需识别工作类型并提议加载用 `skill-router`。本技能只在用户明确要初始化时执行，不代做按需探测。
 
 ## 何时执行
 
@@ -27,6 +29,8 @@ description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目�
 - 项目类型变化，需要增删技能
 - 项目里 `.agents/skills/` 缺失、链接失效或指向旧路径
 - 用户在对话中（非开头）只说「提交」时，按下一节处理
+
+会话中首次出现领域任务的按需加载提议由 `skill-router` 负责，不要用本技能代做。
 
 已经能正常工作时不要执行，也不必每次会话都检查。本技能是幂等的，但没必要每次会话都跑。
 
@@ -122,13 +126,15 @@ PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 "$PROJECT_INIT/link-skills.sh" --scenario dev
 # 多选：--scenario dev --scenario learn
 # 全局技能（装到 ~/.agents/skills）：--scenario global
+# 复制安装（目标已有同名目录时跳过）：--scenario dev --copy
 # 场景外补充：--scenario other diagnosing-bugs
 ```
 
 - 只选 `global` 场景且没给 `--dest` 时，目标自动为 `~/.agents/skills`
 - `--dest` 只用于目标不在项目根目录的 `.agents/skills` 时
 - `--dry-run` 先看将执行的动作
-- 脚本用绝对路径建链接；不要改成相对路径，也不要改成复制，否则仓库更新不会同步
+- 默认用绝对路径建链接；不要改成相对路径，否则仓库移动后会断
+- `--copy` 复制成项目自有副本，可修改、可提交；目标已存在（含符号链接）时跳过，不覆盖。复制后仓库更新不会同步，需要更新时先备份项目内改动，再删目录重新复制
 - 目标同名实体目录不会被覆盖；先和用户确认其中内容，再决定是否备份移走
 - `other` 不装默认技能，必须跟技能名；只给 `--scenario other` 会报错退出
 
@@ -218,7 +224,7 @@ ls -la .agents/skills
 readlink -f .agents/skills/dev-init
 ```
 
-逐项确认链接指向 `$REPO_ROOT/<分组>/<name>`，且 `SKILL.md` 存在。只报告本次实际发生的事：新建了哪些、替换了哪些、跳过了哪些、哪些因实体文件冲突未处理。
+逐项确认链接指向 `$REPO_ROOT/<分组>/<name>`，且 `SKILL.md` 存在。复制安装时目标不是符号链接，确认目录内有 `SKILL.md` 即可。只报告本次实际发生的事：新建了哪些、替换了哪些、跳过了哪些、哪些因实体文件冲突未处理。
 
 项目范围还要确认 `.github/copilot-instructions.md` 是指向 `AGENTS.md` 的相对符号链接：
 
