@@ -118,6 +118,7 @@ system-skills/opencode-askpass
 system-skills/opencode-init
 system-skills/opencode-rules
 system-skills/opencode-service
+system-skills/rime-privacy-memory
 system-skills/system-init
 system-skills/xdg-user-dirs-english
 dev-skills/diagnosing-bugs

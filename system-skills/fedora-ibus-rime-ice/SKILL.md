@@ -79,3 +79,7 @@ ibus-rime 没有独立的部署命令，靠重启引擎触发重新部署：
 ```bash
 rm -rf ~/.config/ibus/rime/build && ibus restart
 ```
+
+## 相关技能
+
+敏感词屏蔽、用户词典词频衰减与记忆清理见 `rime-privacy-memory`。
