@@ -11,7 +11,8 @@
   * 或从另一台机器 / 另一个会话 `pkill kbdlk`
 """
 
-import os
+import glob
+import re
 import select
 import signal
 import sys
@@ -25,7 +26,9 @@ REQUIRED = {E.KEY_A, E.KEY_Z, E.KEY_ENTER, E.KEY_SPACE}
 # 电源键、合盖、睡眠键不碰，免得锁住后没法关机
 SKIP_NAMES = ("power button", "lid switch", "sleep button")
 
-# 笔记本的 Fn 组合键常常由独立设备上报（如 Ideapad extra buttons / Video Bus）
+# 笔记本的 Fn 组合键常常由独立设备上报（如 Ideapad extra buttons / Video Bus）；
+# PRINT（截屏键，内核里等于 SYSRQ）和 SCREENLOCK 也列进来，
+# 这样只上报这几个键的虚拟键盘同样会被独占。
 SYSTEM_KEYS = {
     getattr(E, name)
     for name in (
@@ -36,16 +39,38 @@ SYSTEM_KEYS = {
         "KEY_TOUCHPAD_ON", "KEY_TOUCHPAD_OFF", "KEY_PLAYPAUSE", "KEY_MUTE",
         "KEY_VOLUMEUP", "KEY_VOLUMEDOWN", "KEY_NEXTSONG", "KEY_PREVIOUSSONG",
         "KEY_PROG1", "KEY_PROG2", "KEY_PROG3", "KEY_PROG4", "KEY_HELP",
-        "KEY_FAVORITES", "KEY_REFRESH_RATE_TOGGLE",
+        "KEY_FAVORITES", "KEY_REFRESH_RATE_TOGGLE", "KEY_PRINT",
+        "KEY_SYSRQ", "KEY_SCREENLOCK",
     )
     if hasattr(E, name)
 }
+
+# 转发 / 虚拟键盘（InputActions、input-remapper 等）会在设备名后加这些后缀
+FORWARD_SUFFIX = re.compile(r"\s*\((?:InputActions|input-remapper)[^)]*\)\s*$", re.I)
+
+
+def base_name(name):
+    """去掉转发后缀，用来判断“这个忙设备是否已被它的转发设备覆盖”。"""
+    return FORWARD_SUFFIX.sub("", name).strip()
+
+
+def device_paths():
+    """所有 /dev/input/event*。
+
+    不能用 evdev.list_devices()：它用 os.access 过滤，遇到带 ACL 的节点
+    （InputActions / input-remapper 创建的虚拟键盘）会误判为不可读而漏掉，
+    恰恰是最需要锁的设备。
+    """
+    return sorted(
+        glob.glob("/dev/input/event*"),
+        key=lambda p: int(p.rsplit("event", 1)[1] or 0),
+    )
 
 
 def keyboards():
     """要独占的设备：能打字的键盘 + 上报 Fn / 多媒体等系统键的设备。"""
     found = []
-    for path in sorted(evdev.list_devices()):
+    for path in device_paths():
         try:
             dev = evdev.InputDevice(path)
         except OSError:
@@ -53,14 +78,31 @@ def keyboards():
         caps = dev.capabilities()
         keys = set(caps.get(E.EV_KEY, []))
         if dev.name.lower() in SKIP_NAMES:
+            dev.close()
             continue
-        if E.EV_SW in caps:  # 带耳机插孔 / 合盖开关的设备，抓了会影响状态检测
+        # 带耳机插孔 / 合盖开关的设备，抓了会影响状态检测；但它本身是键盘时照抓
+        if E.EV_SW in caps and not REQUIRED <= keys:
+            dev.close()
             continue
         if keys & {E.BTN_LEFT, E.BTN_MOUSE, E.BTN_TOUCH}:  # 鼠标/触控板不锁
+            dev.close()
             continue
         if REQUIRED <= keys or keys & SYSTEM_KEYS:
             found.append(dev)
+        else:
+            dev.close()
     return found
+
+
+def grab_all(devs):
+    grabbed, busy = [], []
+    for dev in devs:
+        try:
+            dev.grab()
+            grabbed.append(dev)
+        except OSError as exc:
+            busy.append((dev, exc))
+    return grabbed, busy
 
 
 def main():
@@ -70,7 +112,14 @@ def main():
         return 0
     if "-l" in args or "--list" in args:
         for dev in keyboards():
-            print(f"{dev.path}\t{dev.name}")
+            try:
+                dev.grab()
+                state = ""
+                dev.ungrab()
+            except OSError:
+                state = "\t(被别的程序占用)"
+            print(f"{dev.path}\t{dev.name}{state}")
+            dev.close()
         return 0
 
     try:
@@ -84,21 +133,26 @@ def main():
         print("没找到键盘设备（当前用户需要属于 input 组）", file=sys.stderr)
         return 1
 
-    grabbed, busy = [], []
-    for dev in devs:
-        try:
-            dev.grab()
-            grabbed.append(dev)
-        except OSError as exc:
-            busy.append((dev, exc))
+    grabbed, busy = grab_all(devs)
+
+    # 忙设备：若它的转发版（如 “xxx (InputActions output)”）已抓住，按键其实已被拦下
+    grabbed_bases = {base_name(d.name) for d in grabbed}
+    uncovered = []
     for dev, exc in busy:
-        print(f"跳过 {dev.name}：{exc.strerror or exc}", file=sys.stderr)
+        if base_name(dev.name) in grabbed_bases:
+            continue
+        uncovered.append((dev, exc))
+
     if not grabbed:
         print("没能锁住任何键盘（设备都被别的程序独占了？）", file=sys.stderr)
+        for dev, exc in busy:
+            print(f"  {dev.name}：{exc.strerror or exc}", file=sys.stderr)
         return 1
 
     names = "、".join(d.name for d in grabbed)
-    print(f"键盘已锁定：{names}", flush=True)
+    print(f"键盘已锁定（{len(grabbed)} 个设备）：{names}", flush=True)
+    for dev, exc in uncovered:
+        print(f"未覆盖 {dev.name}：{exc.strerror or exc}", file=sys.stderr)
     if timeout > 0:
         print(f"{timeout:.0f} 秒后自动解锁；也可用鼠标关掉本终端窗口。", flush=True)
     else:

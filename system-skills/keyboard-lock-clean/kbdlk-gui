@@ -4,6 +4,8 @@
 点“锁定键盘”独占键盘与 Fn/热键设备，点“解锁”或关窗口即恢复。
 """
 
+import glob
+import re
 import sys
 
 import evdev
@@ -30,16 +32,38 @@ SYSTEM_KEYS = {
         "KEY_TOUCHPAD_ON", "KEY_TOUCHPAD_OFF", "KEY_PLAYPAUSE", "KEY_MUTE",
         "KEY_VOLUMEUP", "KEY_VOLUMEDOWN", "KEY_NEXTSONG", "KEY_PREVIOUSSONG",
         "KEY_PROG1", "KEY_PROG2", "KEY_PROG3", "KEY_PROG4", "KEY_HELP",
-        "KEY_FAVORITES", "KEY_REFRESH_RATE_TOGGLE",
+        "KEY_FAVORITES", "KEY_REFRESH_RATE_TOGGLE", "KEY_PRINT",
+        "KEY_SYSRQ", "KEY_SCREENLOCK",
     )
     if hasattr(E, name)
 }
+
+# 转发 / 虚拟键盘（InputActions、input-remapper 等）会在设备名后加这些后缀
+FORWARD_SUFFIX = re.compile(r"\s*\((?:InputActions|input-remapper)[^)]*\)\s*$", re.I)
+
+
+def base_name(name):
+    """去掉转发后缀，用来判断“这个忙设备是否已被它的转发设备覆盖”。"""
+    return FORWARD_SUFFIX.sub("", name).strip()
+
+
+def device_paths():
+    """所有 /dev/input/event*。
+
+    不能用 evdev.list_devices()：它用 os.access 过滤，遇到带 ACL 的节点
+    （InputActions / input-remapper 创建的虚拟键盘）会误判为不可读而漏掉，
+    恰恰是最需要锁的设备。
+    """
+    return sorted(
+        glob.glob("/dev/input/event*"),
+        key=lambda p: int(p.rsplit("event", 1)[1] or 0),
+    )
 
 
 def targets():
     """要独占的设备：能打字的键盘 + 上报 Fn / 多媒体等系统键的设备。"""
     found = []
-    for path in sorted(evdev.list_devices()):
+    for path in device_paths():
         try:
             dev = evdev.InputDevice(path)
         except OSError:
@@ -47,30 +71,42 @@ def targets():
         caps = dev.capabilities()
         keys = set(caps.get(E.EV_KEY, []))
         if dev.name.lower() in SKIP_NAMES:
+            dev.close()
             continue
-        if E.EV_SW in caps:  # 带耳机插孔 / 合盖开关的设备，抓了会影响状态检测
+        # 带耳机插孔 / 合盖开关的设备，抓了会影响状态检测；但它本身是键盘时照抓
+        if E.EV_SW in caps and not REQUIRED <= keys:
+            dev.close()
             continue
         if keys & {E.BTN_LEFT, E.BTN_MOUSE, E.BTN_TOUCH}:  # 鼠标/触控板不锁
+            dev.close()
             continue
         if REQUIRED <= keys or keys & SYSTEM_KEYS:
             found.append(dev)
+        else:
+            dev.close()
     return found
 
 
 class Locker:
     def __init__(self):
         self.devices = []
-        self.skipped = []
+        self.uncovered = []
 
     def lock(self):
-        self.devices, self.skipped = [], []
+        self.devices, self.uncovered = [], []
+        busy = []
         for dev in targets():
             try:
                 dev.grab()
                 self.devices.append(dev)
             except OSError:
-                self.skipped.append(dev.name)
-                dev.close()
+                busy.append(dev)            # 可能是主键盘被 InputActions 之类占用
+        # 忙设备若已有同名的转发版被抓（如 “xxx (InputActions output)”），按键已被拦下
+        grabbed_bases = {base_name(d.name) for d in self.devices}
+        for dev in busy:
+            if base_name(dev.name) not in grabbed_bases:
+                self.uncovered.append(dev.name)
+            dev.close()
         return len(self.devices)
 
     def unlock(self):
@@ -198,6 +234,9 @@ class LockWindow(Adw.ApplicationWindow):
         box.append(section)
 
         box.append(Gtk.Box(vexpand=True))
+        self.warn = wrap_label("", ("caption", "error"), 30)
+        self.warn.set_visible(False)
+        box.append(self.warn)
         box.append(self.action_button("解锁", "destructive-action", self.on_unlock))
         return box
 
@@ -207,6 +246,14 @@ class LockWindow(Adw.ApplicationWindow):
             self.note.set_text("锁不住：没找到可用的键盘设备（当前用户需要属于 input 组）")
             return
         self.note.set_text("")
+
+        if self.locker.uncovered:
+            self.warn.set_text(
+                "以下设备被其他程序占用，未能覆盖：" + "、".join(self.locker.uncovered)
+                + "。先退出该程序（如 InputActions 的键盘捕获）再锁一次。")
+            self.warn.set_visible(True)
+        else:
+            self.warn.set_visible(False)
 
         rows = []
         child = self.dev_list.get_first_child()
