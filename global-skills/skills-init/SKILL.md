@@ -1,9 +1,9 @@
 ---
-name: skill-init
-description: 会话中识别用户实际要做的工作类型（开发/系统/学习/创作），当项目缺少对应技能时提议一次加载方式：从源仓库临时读取、符号链接安装或复制安装。关键词：skill-init、按需加载、临时加载、链接安装、复制安装、工作类型、修输入法、蓝牙、GNOME、调试、学习、做视频。
+name: skills-init
+description: 会话中识别用户实际要做的工作类型（开发/系统/学习/创作），当项目缺少对应技能时提议一次加载方式：从源仓库临时读取、符号链接安装或复制安装。关键词：skills-init、按需加载、临时加载、链接安装、复制安装、工作类型、修输入法、蓝牙、GNOME、调试、学习、做视频。
 ---
 
-# skill-init
+# skills-init
 
 职责：根据用户对话里的真实需求识别工作类型，只在该项目缺少对应技能时提议一次加载方式。
 
@@ -41,10 +41,10 @@ ls ~/.agents/skills 2>/dev/null
 
 ## 定位源仓库
 
-`skill-init` 自身位于仓库 `global-skills/skill-init/`；全局安装时 `~/.agents/skills/skill-init` 是指向它的符号链接：
+`skills-init` 自身位于仓库 `global-skills/skills-init/`；全局安装时 `~/.agents/skills/skills-init` 是指向它的符号链接：
 
 ```bash
-SKILL_DIR=$(dirname "$(readlink -f ~/.agents/skills/skill-init/SKILL.md 2>/dev/null || echo "$PWD/global-skills/skill-init/SKILL.md")")
+SKILL_DIR=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md 2>/dev/null || echo "$PWD/global-skills/skills-init/SKILL.md")")
 REPO_ROOT=$(dirname "$(dirname "$SKILL_DIR")")
 test -f "$REPO_ROOT/global-skills/project-init/link-skills.sh" && echo "$REPO_ROOT"
 ```
@@ -53,7 +53,7 @@ test -f "$REPO_ROOT/global-skills/project-init/link-skills.sh" && echo "$REPO_RO
 
 ## 弹窗
 
-用提问工具，标题写「检测到<工作类型>任务，触发 skill-init 技能:」，正文说明推荐场景和将加载的技能，选项：
+用提问工具，标题写「检测到<工作类型>任务，触发 skills-init 技能:」，正文说明推荐场景和将加载的技能，选项：
 
 | 选项 | 行为 |
 | --- | --- |

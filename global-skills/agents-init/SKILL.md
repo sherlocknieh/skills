@@ -1,9 +1,9 @@
 ---
-name: agent-init
-description: 安装或卸载各 Agent 的全局指令文件：把本仓库根目录的 AGENTS.md 以符号链接装到 OpenCode、Claude Code、Codex、Copilot、Gemini CLI、Qwen Code、iFlow、Droid、Crush、Windsurf、Kiro、dsh、Pi 的全局提示词路径，或移除这些链接。触发后先用 --list 检测本机已安装哪些 Agent，再弹窗只列出已安装的 Agent 让用户勾选，并选择安装/修复还是卸载，按选择执行并校验。新会话开场、只打招呼（你好 / hi / hello）、只说「测试」「初始化」，或说「安装 / 卸载全局 AGENTS.md」「全局提示词」「全局规则」「修 AGENTS.md」时触发；开场只检查不弹窗，全部就绪则一句话说明并继续原对话。关键词：agent-init、agents-init、安装全局 AGENTS.md、卸载全局提示词、全局规则、全局提示词、copilot-instructions、CLAUDE.md、GEMINI.md、QWEN.md、IFLOW.md、dsh、pi、符号链接、重建链接、换 Agent、新机器、你好、hi、hello、开场白、测试、初始化。
+name: agents-init
+description: 安装或卸载各 Agent 的全局指令文件：把本仓库根目录的 AGENTS.md 以符号链接装到 OpenCode、Claude Code、Codex、Copilot、Gemini CLI、Qwen Code、iFlow、Droid、Crush、Windsurf、Kiro、dsh、Pi 的全局提示词路径，或移除这些链接。触发后先用 --list 检测本机已安装哪些 Agent，再弹窗只列出已安装的 Agent 让用户勾选，并选择安装/修复还是卸载，按选择执行并校验。新会话开场、只打招呼（你好 / hi / hello）、只说「测试」「初始化」，或说「安装 / 卸载全局 AGENTS.md」「全局提示词」「全局规则」「修 AGENTS.md」时触发；开场只检查不弹窗，全部就绪则一句话说明并继续原对话。关键词：agents-init、安装全局 AGENTS.md、卸载全局提示词、全局规则、全局提示词、copilot-instructions、CLAUDE.md、GEMINI.md、QWEN.md、IFLOW.md、dsh、pi、符号链接、重建链接、换 Agent、新机器、你好、hi、hello、开场白、测试、初始化。
 ---
 
-# agent-init
+# agents-init
 
 职责：把仓库根目录的 `AGENTS.md` 装成各 Agent 的全局指令文件，或把这些链接卸掉。
 
@@ -29,15 +29,15 @@ description: 安装或卸载各 Agent 的全局指令文件：把本仓库根目
 
 ## 1. 定位仓库根
 
-本技能位于仓库的 `global-skills/agent-init/` 下。全局安装时 `~/.agents/skills/agent-init` 是指向该目录的符号链接：
+本技能位于仓库的 `global-skills/agents-init/` 下。全局安装时 `~/.agents/skills/agents-init` 是指向该目录的符号链接：
 
 ```bash
-AGENT_INIT=$(dirname "$(readlink -f ~/.agents/skills/agent-init/SKILL.md)")
+AGENT_INIT=$(dirname "$(readlink -f ~/.agents/skills/agents-init/SKILL.md)")
 REPO_ROOT=$(dirname "$(dirname "$AGENT_INIT")")
 test -f "$REPO_ROOT/AGENTS.md" && test -f "$AGENT_INIT/install-agents.sh" && echo "$REPO_ROOT"
 ```
 
-`~/.agents/skills/agent-init` 不存在时，用当前会话实际加载到的 `global-skills/agent-init/SKILL.md` 路径取上两级。仍不确定就问用户仓库位置，不要猜。
+`~/.agents/skills/agents-init` 不存在时，用当前会话实际加载到的 `global-skills/agents-init/SKILL.md` 路径取上两级。仍不确定就问用户仓库位置，不要猜。
 
 ## 2. 检测
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# agent-init: 把仓库根目录的 AGENTS.md 符号链接到 Agent 的全局指令路径，或用 --uninstall 移除（原 agents-init）
+# agents-init: 把仓库根目录的 AGENTS.md 符号链接到 Agent 的全局指令路径，或用 --uninstall 移除
 # 作为常驻全局技能提供，由 agent 自动发现并触发；装/卸哪些 Agent 由 SKILL.md 里的弹窗询问用户。
 set -euo pipefail
 

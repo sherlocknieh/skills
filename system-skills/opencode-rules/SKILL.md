@@ -11,7 +11,7 @@ description: "OpenCode 自身的常驻工作规则：改 OpenCode 配置只改�
 
 - `~/.config/opencode/` 下的 `opencode.json`、`cli.json`、`plugins/`、askpass 脚本，按 `opencode-init` / `opencode-askpass` 的说明直接改本机文件即可，不要在技能目录里另存配置副本。
 - 例外：`service.json` 含认证 token，不进版本控制，重启服务会自动重建。
-- 改的是全局规则 `AGENTS.md` 时，注意它是多处分身：真源是仓库根目录的 `AGENTS.md`（`readlink -f ~/.agents/skills/agent-init/SKILL.md` 取上两级），`~/.config/opencode/AGENTS.md` 与 `~/.copilot/copilot-instructions.md` 均为软链，只改真源，不要在任何技能里另存正文副本。安装与修链用常驻技能 `agent-init`（`~/.agents/skills/agent-init/install-agents.sh`），不要靠 `project-init` 或项目安装。
+- 改的是全局规则 `AGENTS.md` 时，注意它是多处分身：真源是仓库根目录的 `AGENTS.md`（`readlink -f ~/.agents/skills/agents-init/SKILL.md` 取上两级），`~/.config/opencode/AGENTS.md` 与 `~/.copilot/copilot-instructions.md` 均为软链，只改真源，不要在任何技能里另存正文副本。安装与修链用常驻技能 `agents-init`（`~/.agents/skills/agents-init/install-agents.sh`），不要靠 `project-init` 或项目安装。
 
 ## 2. 提权
 
