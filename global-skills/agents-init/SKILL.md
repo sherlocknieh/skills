@@ -1,20 +1,28 @@
 ---
 name: agents-init
-description: 把唯一全局 AGENTS.md 以符号链接方式装到 OpenCode/Copilot/dsh/Pi...等常见 Agent 的全局提示词路径下。也用于修复/卸载。触发关键词：你好、hi、hello、测试、初始化、agents-init、全局 AGENTS.md、全局提示词、全局规则。
+description: 把唯一全局 AGENTS.md 以符号链接方式装到常见 Agent 的全局提示词路径下。也用于修复/卸载。触发关键词：你好、hi、hello、测试、初始化、agents-init、全局 AGENTS.md、全局提示词、全局规则。
 ---
 
 # 步骤
 
-## 1. 定位
+## 1. 定位仓库
+
+真源只有一个：仓库根目录的 `AGENTS.md`。`install-agents.sh` 与本文件同目录，先算出这两个变量再往下走：
 
 ```bash
-AGENT_INIT=$(dirname "$(readlink -f ~/.agents/skills/global-skills/agents-init/SKILL.md)")
-test -f "$AGENT_INIT/install-agents.sh" && echo "$AGENT_INIT"
+AGENT_INIT=$(dirname -- "$(readlink -f -- <本文件的路径>)")   # global-skills/agents-init
+REPO_ROOT=$(dirname -- "$(dirname -- "$AGENT_INIT")")         # 仓库根
 ```
 
-`~/.agents/skills/global-skills` 是指向仓库的整目录链接，`readlink -f` 会解析回真实路径；对不上时问用户仓库位置，不要猜。
+入口可能有三类，`readlink -f` 会把它们收敛成同一条真实路径，不需要分别处理：
 
-## 2. 检测
+- 在本仓库里直接触发，路径形如 `<仓库>/global-skills/agents-init/SKILL.md`；
+- 在别的目录打开 Agent，用户粘贴了 `.../global-skills/agents-init/SKILL.md` 这个路径；
+- 经 `~/.agents/skills/global-skills` 软链接触发，真实路径仍是上面的仓库。
+
+算出路径后向用户确认一次。若粘贴的路径不存在，或 `$REPO_ROOT/AGENTS.md` 不存在（技能被单独复制出来、已脱离仓库），停下来问用户真实的仓库路径，不要自己造一份正文。
+
+## 2. 检测已安装的 Agent
 
 ```bash
 "$AGENT_INIT/install-agents.sh" --list
@@ -22,21 +30,17 @@ test -f "$AGENT_INIT/install-agents.sh" && echo "$AGENT_INIT"
 
 输出分两组：`已安装（N）` 与 `未安装（M）`，每行是 Agent、链接状态（`已链接` / `指向别处` / `实体文件` / `无链接`）、全局指令路径。弹窗只取「已安装」那组生成选项。
 
+路径与判定以 `install-agents.sh` 为准，下表只是速查：
+
 | Agent | 全局指令路径 | 已安装判定（配置目录） |
 | --- | --- | --- |
+| VSCode Copilot | `~/.copilot/copilot-instructions.md` | `~/.copilot` |
 | OpenCode | `~/.config/opencode/AGENTS.md` | `~/.config/opencode` |
-| Claude Code | `~/.claude/CLAUDE.md` | `~/.claude` |
+| dsh (DeepSeek Harness) | `${DSH_HOME:-$HOME/.dsh}/AGENTS.md` | `${DSH_HOME:-$HOME/.dsh}` |
+| Pi | `${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/AGENTS.md` | `${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}` |
 | Codex | `~/.codex/AGENTS.md` | `~/.codex` |
-| Copilot | `~/.copilot/copilot-instructions.md` | `~/.copilot` |
 | Gemini CLI | `~/.gemini/GEMINI.md` | `~/.gemini` |
-| Qwen Code | `~/.qwen/QWEN.md` | `~/.qwen` |
-| iFlow | `~/.iflow/IFLOW.md` | `~/.iflow` |
-| Droid (Factory) | `~/.factory/AGENTS.md` | `~/.factory` |
-| Crush | `~/.config/crush/CRUSH.md` | `~/.config/crush` |
-| Windsurf | `~/.codeium/windsurf/memories/global_rules.md` | `~/.codeium/windsurf` |
-| Kiro | `~/.kiro/steering/AGENTS.md` | `~/.kiro` |
-| dsh (DeepSeek Harness) | `~/.dsh/AGENTS.md` | `~/.dsh` |
-| Pi | `~/.pi/agent/AGENTS.md` | `~/.pi/agent` |
+| Claude Code | `~/.claude/CLAUDE.md` | `~/.claude` |
 
 判定只看配置目录是否存在，不看可执行文件在不在 PATH：CLI 装在别处、容器里或换过安装方式时目录照样能说明「这个 Agent 用过」。`dsh` 认 `DSH_HOME`，`pi` 认 `PI_CODING_AGENT_DIR`，设了就按它们指的位置。
 
