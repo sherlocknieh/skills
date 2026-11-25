@@ -92,6 +92,7 @@ EOF
     dev) cat <<'EOF'
 dev-skills/code-conventions
 dev-skills/dev-init
+dev-skills/frontend-init
 dev-skills/userscript-dev
 dev-skills/retro
 dev-skills/diagnosing-bugs
