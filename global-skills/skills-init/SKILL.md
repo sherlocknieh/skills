@@ -1,18 +1,30 @@
 ---
 name: skills-init
-description: 会话中识别用户实际要做的工作类型（开发/系统/学习/创作），当项目缺少对应技能时提议一次加载方式：从源仓库临时读取、符号链接安装或复制安装。关键词：skills-init、按需加载、临时加载、链接安装、复制安装、工作类型、修输入法、蓝牙、GNOME、调试、学习、做视频。
+description: 管理技能安装并按需路由：安装全局常驻技能；会话中识别工作类型，当项目缺少对应技能时提议临时读取、符号链接或复制安装。关键词：skills-init、全局技能、按需加载、临时加载、链接安装、复制安装、工作类型、修输入法、蓝牙、GNOME、调试、学习、做视频。
 ---
 
 # skills-init
 
-职责：根据用户对话里的真实需求识别工作类型，只在该项目缺少对应技能时提议一次加载方式。
+职责：管理本仓库技能的安装；根据用户对话里的真实需求识别工作类型，只在该项目缺少对应技能时提议一次加载方式。
 
-分工：显式初始化与场景切换用 `project-init`；本技能只处理「这次会话要做什么，需不需要现成技能」。
+分工：全局常驻技能的安装，以及会话中的技能按需加载由本技能负责；`project-init` 负责项目提示词初始化，并在项目安装流程中调用本技能的安装脚本。
+
+## 安装全局常驻技能
+
+用户明确要求安装全局技能、初始化新环境或切换 Agent 时，安装 `global` 场景技能到 `~/.agents/skills/`：
+
+```bash
+SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md)")
+"$SKILLS_INIT/link-skills.sh" --scenario global
+```
+
+仓库根目录需要同时包含 `AGENTS.md` 与 `global-skills/skills-init/`。只安装 `global` 场景列出的常驻技能；全局提示词由 `agents-init` 管理，领域技能按需安装到项目，不要把整个技能仓库链入全局目录。
 
 ## 何时判断
 
 - 会话开头用户直接给出具体任务，例如「修一下输入法」「这个 bug 帮忙看下」「讲讲 Transformer」
 - 会话中途首次出现明确的领域任务，且此前没有判断过
+- 用户明确要求查找或安装全局常驻技能
 
 纯闲聊、只问一句事实、或用户已明确要求直接动手且不需要专项技能时跳过。不要在每个问题上都判断。
 
@@ -46,7 +58,7 @@ ls ~/.agents/skills 2>/dev/null
 ```bash
 SKILL_DIR=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md 2>/dev/null || echo "$PWD/global-skills/skills-init/SKILL.md")")
 REPO_ROOT=$(dirname "$(dirname "$SKILL_DIR")")
-test -f "$REPO_ROOT/global-skills/project-init/link-skills.sh" && echo "$REPO_ROOT"
+test -f "$REPO_ROOT/global-skills/skills-init/link-skills.sh" && echo "$REPO_ROOT"
 ```
 
 路径对不上时问用户仓库位置，不要猜。
@@ -77,13 +89,13 @@ cat "$REPO_ROOT/system-skills/fedora-ibus-rime-ice/SKILL.md"
 ### 链接安装
 
 ```bash
-"$REPO_ROOT/global-skills/project-init/link-skills.sh" --scenario system
+"$REPO_ROOT/global-skills/skills-init/link-skills.sh" --scenario system
 ```
 
 ### 复制安装
 
 ```bash
-"$REPO_ROOT/global-skills/project-init/link-skills.sh" --scenario system --copy
+"$REPO_ROOT/global-skills/skills-init/link-skills.sh" --scenario system --copy
 ```
 
 - 复制只在目标不存在时进行；已有同名目录会跳过并报告，不覆盖

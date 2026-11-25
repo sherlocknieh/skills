@@ -1,32 +1,27 @@
 ---
 name: project-init
-description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目场景把技能链到项目的 .agents/skills/；项目缺少 AGENTS.md 时建最小骨架，并建 .github/copilot-instructions.md 符号链接。适用于新机器接入、换 Agent、链接失效重建、新项目接入、切换项目类型（软件开发/系统管理/学习/内容创作）。用户在对话中（非开头）只说「提交」时也触发本技能：这通常意味着项目还没初始化自动提交规则，先弹窗说明这一点并询问是否现在初始化，再继续原本要做的事。关键词：提交、project-init、全局技能、常驻技能、符号链接、复制安装、重建链接、项目技能初始化、.agents/skills、AGENTS.md、copilot-instructions、接续执行 dev-init、frontend-init、system-init、opencode-init。全局 AGENTS.md 由 agents-init 安装，不在本技能范围。
+description: 按场景为项目安装技能，并初始化项目级 AGENTS.md 与 .github/copilot-instructions.md。适用于新项目接入、切换项目类型、项目技能链接失效或重建。用户在对话中（非开头）只说「提交」时也触发本技能：这通常意味着项目还没初始化自动提交规则，先弹窗说明这一点并询问是否现在初始化，再继续原本要做的事。关键词：提交、project-init、项目初始化、项目技能、符号链接、复制安装、.agents/skills、AGENTS.md、copilot-instructions、接续执行 dev-init、frontend-init、system-init、opencode-init。全局技能安装由 skills-init 负责，全局 AGENTS.md 由 agents-init 安装。
 ---
 
 # project-init
 
-职责：一个入口，三种作用范围。
+职责：初始化项目范围内的技能与提示词。
 
-- **全局技能**：把 `global` 场景的常驻技能链到 `~/.agents/skills/`。
-- **项目技能**：按项目场景把本仓库的技能链接或复制到 `<project>/.agents/skills/`。
+- **项目技能**：按项目场景调用 `skills-init` 的安装脚本，把本仓库的技能链接或复制到 `<project>/.agents/skills/`。
 - **项目提示词**：`<project>/AGENTS.md` 缺失时，`dev` 场景由 `dev-init` 原样复制 `AGENTS-example.md`（保留占位符作为弹窗入口），其他场景建最小骨架；已有则只补缺失的「自动提交」小节；并建 `.github/copilot-instructions.md` 指向它的符号链接。
 
 技能默认建链接，不复制内容；需要固定版本或在项目内修改技能时才用 `--copy` 复制。仓库更新后链接自动生效。项目 `AGENTS.md` 只在缺失时建一次，本技能不改已有正文，只补「自动提交」约定；`dev` 场景的正文由 `dev-init` 复制模板后逐步弹窗补齐。
 
-全局 `~/.agents/skills/` 只放 `global` 场景那五条常驻技能（全局规则入口 + 技能安装入口 + 按需路由 + 技能发现入口 + 文档写作规范），不要把所有技能都装进去。其余场景技能一律按项目安装。
-
-全局 `AGENTS.md` 不在这里安装：它由常驻全局技能 `agents-init` 负责。`agents-init` 随 `global` 场景链入 `~/.agents/skills/`，agent 会自动发现并触发。本技能只处理项目级 `AGENTS.md`。
+全局常驻技能由 `skills-init` 安装；全局 `AGENTS.md` 由 `agents-init` 管理。本技能只处理项目级技能与 `AGENTS.md`。
 
 分工：显式初始化、切换场景、重建链接用 `project-init`；会话中按需识别工作类型并提议加载用 `skills-init`。本技能只在用户明确要初始化时执行，不代做按需探测。
 
 ## 何时执行
 
-- 安装或调整全局常驻技能（`global` 场景）
-- 新机器、换了 Agent、仓库路径变更
+- 新项目或首次接入 AI，需要决定项目应加载哪些技能
+- 项目类型变化，需要增删项目技能
 - 全局 `AGENTS.md` 缺失或链接失效时，先执行 `agents-init` 技能，不要用本技能补装
-- 新项目或首次接入 AI，需要决定暴露哪些技能
 - 项目缺少 `AGENTS.md` 或 `.github/copilot-instructions.md`
-- 项目类型变化，需要增删技能
 - 项目里 `.agents/skills/` 缺失、链接失效或指向旧路径
 - 用户在对话中（非开头）只说「提交」时，按下一节处理
 
@@ -51,48 +46,38 @@ test -d .agents/skills && echo skills-ok
 
 选项：「现在初始化（project）」/「跳过」。选跳过就只做本次提交，不要补任何文件。
 
-## 1. 定位技能仓库（两种范围共用）
+## 1. 定位技能仓库
 
 本技能自身位于仓库的 `global-skills/project-init/` 下。全局安装时 `~/.agents/skills/project-init` 是指向该目录的符号链接，先解析真实路径：
 
 ```bash
 SKILL_DIR=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 REPO_ROOT=$(dirname "$(dirname "$SKILL_DIR")")
-test -f "$REPO_ROOT/AGENTS.md" && test -d "$REPO_ROOT/global-skills/project-init" && echo "$REPO_ROOT"
+test -f "$REPO_ROOT/AGENTS.md" && test -f "$REPO_ROOT/global-skills/skills-init/link-skills.sh" && echo "$REPO_ROOT"
 ```
 
 `~/.agents/skills/project-init` 不存在时，用当前会话实际加载到的 `global-skills/project-init/SKILL.md` 路径取上两级。仍不确定就问用户仓库位置，不要猜。
 
-仓库根目录必须同时有 `AGENTS.md` 和 `global-skills/project-init/`。两者都对不上时停下，告诉用户把本仓库 clone 到任意固定目录（如 `~/Projects/skills`），再把 `global-skills/project-init` 链到 `~/.agents/skills/project-init`。
+仓库根目录必须同时有 `AGENTS.md` 和 `global-skills/skills-init/link-skills.sh`。两者都对不上时停下，告诉用户把本仓库 clone 到任意固定目录（如 `~/Projects/skills`），再把 `global-skills/project-init` 链到 `~/.agents/skills/project-init`。
 
-## 2. 确认作用范围
+## 2. 项目范围与职责边界
 
-用提问工具让用户选择，不要自行猜测：
+本技能只处理当前项目。用户要安装全局常驻技能时，交由 `skills-init`；需要安装或修复全局 `AGENTS.md` 时，交由 `agents-init`。不要在本技能里代做全局安装。
 
-| 范围 | 做什么 |
-| --- | --- |
-| `global` 全局技能 | 把 `global` 场景技能链到 `~/.agents/skills/` |
-| `project` 项目技能 | 按场景把技能链到项目 `.agents/skills/`，并建项目 `AGENTS.md` 与 Copilot 链接（`dev` 场景由 `dev-init` 复制模板，其他场景建最小骨架） |
-| `both` 两者 | 先装全局常驻技能，再装项目技能与项目提示词 |
+## 3. 项目技能安装入口
 
-判断依据：用户说“初始化这个项目”归 `project`；说“装全局技能 / 换机器”归 `global`；新机器第一次接入通常选 `both`，但前提是全局 `AGENTS.md` 已由 `agents-init` 装好。
-
-## 3. 全局技能：装到 ~/.agents/skills/
-
-`global` 范围只装常驻技能；全局 `AGENTS.md` 由 `agents-init` 技能负责，本技能不改它。
+项目技能的场景选择与项目初始化由本技能编排；实际链接或复制通过 `skills-init` 的脚本完成：
 
 ```bash
-PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
-"$PROJECT_INIT/link-skills.sh" --scenario global
+SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md)")
+"$SKILLS_INIT/link-skills.sh" --scenario dev
 ```
 
-只选 `global` 场景且没给 `--dest` 时，脚本默认写到 `~/.agents/skills`。装完 `readlink -f ~/.agents/skills/<name>` 应指向 `$REPO_ROOT/global-skills/<name>`。
-
-若发现全局 `AGENTS.md` 缺失或失效：停止本技能，让用户先执行 `agents-init` 技能（它会弹窗让用户选要装或卸的 Agent），或手动运行 `~/.agents/skills/agents-init/install-agents.sh --agent <Agent 名>`，然后再回来装技能。不要在本技能里代装。
+目标默认为当前项目的 `.agents/skills`。全局场景和 `~/.agents/skills` 由 `skills-init` 单独管理。
 
 ## 4. 确认目标项目
 
-- 在项目根目录执行；项目场景的链接目标默认为 `$PWD/.agents/skills`（`global` 场景默认 `~/.agents/skills`）
+- 在项目根目录执行；项目场景的链接目标默认为 `$PWD/.agents/skills`
 - 先看现有内容：`ls -la .agents/skills 2>/dev/null`
 - 已有链接保留不动，脚本只补缺、改错指向，遇到同名实体目录会跳过而不是删除
 - 若项目实际从子目录启动 Agent，确认 `.agents/skills` 应放在仓库根目录
@@ -103,7 +88,6 @@ PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 
 | 场景 | 简要说明 |
 | --- | --- |
-| `global` 全局技能 | 常驻所有会话的入口技能：装技能、装全局提示词、找技能、写文档规范。只在初始化机器或换 Agent 时选一次 |
 | `dev` 软件开发 | 写代码、修 bug、做用户脚本的流程技能：代码规范、项目初始化、前端工程初始化、调试、复盘、向导、交接 |
 | `system` 系统管理 | Linux 桌面与硬件排障：Fedora、GNOME、蓝牙、输入法、远程桌面，以及 OpenCode 自身配置 |
 | `learn` 学习 | 以理解概念、跟学一项技能为主：系统讲解、资料调研、要求重讲、追问式压测 |
@@ -113,8 +97,8 @@ PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 需要看每个场景包含哪些技能时，运行（命令自带源路径解析，不依赖上一条命令的变量）：
 
 ```bash
-PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
-"$PROJECT_INIT/link-skills.sh" --list
+SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md)")
+"$SKILLS_INIT/link-skills.sh" --list
 ```
 
 用户拿不准时，按项目实际内容给一项推荐，说明理由，再让用户确认。用户选择「其他」时，只问要补哪些具体技能；没给技能名就说明 other 不装默认技能，让用户补。
@@ -124,15 +108,13 @@ PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 ## 6. 安装
 
 ```bash
-PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
-"$PROJECT_INIT/link-skills.sh" --scenario dev
+SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md)")
+"$SKILLS_INIT/link-skills.sh" --scenario dev
 # 多选：--scenario dev --scenario learn
-# 全局技能（装到 ~/.agents/skills）：--scenario global
 # 复制安装（目标已有同名目录时跳过）：--scenario dev --copy
 # 场景外补充：--scenario other diagnosing-bugs
 ```
 
-- 只选 `global` 场景且没给 `--dest` 时，目标自动为 `~/.agents/skills`
 - `--dest` 只用于目标不在项目根目录的 `.agents/skills` 时
 - `--dry-run` 先看将执行的动作
 - 默认用绝对路径建链接；不要改成相对路径，否则仓库移动后会断
@@ -153,7 +135,7 @@ rm .agents/skills/<name>
 
 ## 7. 建项目 AGENTS.md 与 Copilot 链接
 
-项目范围（`project` / `both`）在项目根目录执行。先确定 `AGENTS.md`，再建链接；已有 `AGENTS.md` 不覆盖。
+在项目根目录执行。先确定 `AGENTS.md`，再建链接；已有 `AGENTS.md` 不覆盖。
 
 `AGENTS.md` 缺失时按场景处理：
 

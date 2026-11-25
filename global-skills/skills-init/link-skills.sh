@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# project-init: 按场景把本仓库的技能链接或复制到 .agents/skills/（global 场景装到 ~/.agents/skills/）
+# skills-init: 按场景把本仓库的技能链接或复制到 .agents/skills/（global 场景装到 ~/.agents/skills/）
 set -euo pipefail
 
 if ((BASH_VERSINFO[0] < 4)); then
@@ -195,7 +195,7 @@ done
 
 [[ -d $SOURCE_ROOT ]] || die "源目录不存在: $SOURCE_ROOT"
 SOURCE_ROOT=$(cd -- "$SOURCE_ROOT" && pwd -P)
-[[ -f $SOURCE_ROOT/global-skills/project-init/link-skills.sh ]] \
+[[ -f $SOURCE_ROOT/global-skills/skills-init/link-skills.sh ]] \
   || die "源目录不像 skills 仓库: $SOURCE_ROOT（缺少 global-skills/project-init/）"
 
 if ((LIST_ONLY)); then

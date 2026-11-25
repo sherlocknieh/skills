@@ -29,18 +29,20 @@
    mkdir -p "$REPO_ROOT" && cd "$REPO_ROOT"
    git clone https://github.com/sherlocknieh/skills.git
 
-   # 创建技能目录，并把全局技能链进去
+   # 运行 skills-init 的安装脚本，安装 global 场景技能
    mkdir -p ~/.agents/skills
-   ln -sfn "$REPO_ROOT/skills/global-skills/" ~/.agents/skills/
+   "$REPO_ROOT/skills/global-skills/skills-init/link-skills.sh" --scenario global
    ```
 
 3. 安装结果
 
+| 路径 | 说明 |
+| --- | --- |
+| `~/.agents/skills/agents-init` | 全局提示词安装入口 |
+| `~/.agents/skills/project-init` | 项目初始化入口 |
+| `~/.agents/skills/skills-init` | 全局技能安装与按需路由入口 |
 
-- `~/Projects/skills` | 实际技能仓库
-- `~/.agents/skills/global-skills` | 指向全局技能目录的符号链接/快捷方式
-
-现在, global-skills 下的所有技能都可以被任意 Agent 会话自动识别和使用。要卸载全局技能，只需删除 `~/.agents/skills/global-skills` 这个符号链接/快捷方式即可。
+只有 `global` 场景中的常驻技能会自动加载；领域技能仍按项目场景安装。
 
 
 ## 二、全局提示词

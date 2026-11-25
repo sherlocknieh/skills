@@ -7,7 +7,7 @@
 在仓库根目录运行：
 
 ```bash
-global-skills/project-init/link-skills.sh --scenario global
+global-skills/skills-init/link-skills.sh --scenario global
 ```
 
 链入后新开一个 Agent 会话，说「你好」「测试」「初始化」或「安装全局 AGENTS.md」即可触发 `agents-init`：它先用 `--list` 检测本机已安装哪些 Agent，再弹窗只列已安装的那些让你勾选，并选择安装/修复还是卸载（已装好且只是打声招呼时只回一句已就绪）；也可手动运行 `~/.agents/skills/agents-init/install-agents.sh --agent opencode` 或 `--agent opencode --uninstall`。
@@ -29,8 +29,8 @@ global-skills/project-init/link-skills.sh --scenario global
 | 技能 | 为什么常驻 |
 | --- | --- |
 | `agents-init` | 全局规则的安装入口；agent 自动发现并触发，缺了就读不到全局 `AGENTS.md` |
-| `project-init` | 技能安装入口；缺了就没法按场景装技能 |
-| `skills-init` | 会话中识别工作类型并按需提议加载；缺了就不会主动提示安装对口技能 |
+| `project-init` | 项目初始化入口；负责项目技能与项目提示词 |
+| `skills-init` | 全局技能安装入口与会话技能路由；缺了就无法安装常驻技能，也不会主动提示加载对口技能 |
 三条常驻技能保持精简，description 合计控制在 3KB 以内。
 
 ## 拆分记录
@@ -50,6 +50,6 @@ global-skills/project-init/link-skills.sh --scenario global
 ## 增删流程
 
 1. 用 `git mv` 把技能目录移入或移出本目录（保留历史）；
-2. 同步 `project-init/link-skills.sh` 里 `global` 场景的清单；
+2. 同步 `skills-init/link-skills.sh` 里 `global` 场景的清单；
 3. 检查其他场景是否还引用旧路径（`--scenario <场景> --dry-run` 会报告缺失的 `SKILL.md`）；
-4. 本机重跑 `--scenario global`，旧链接指向旧路径时需要先删再建。
+4. 本机重跑 `skills-init/link-skills.sh --scenario global`，旧链接指向旧路径时需要先删再建。
