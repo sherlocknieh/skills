@@ -103,7 +103,7 @@ description: "油猴脚本（Tampermonkey / Violentmonkey / Greasemonkey / Scrip
 - 文档三层分工，别混：
   - `README.md`：给用户——功能列表、安装地址、效果说明。
   - `docs/development.md`：给开发——环境、`dev` / `dev:csp` 用法、构建与发布流程。
-  - `AGENTS.md`：给 agent 定位——≤40 行索引，只放一句话定位、文档地图、开工流程、记忆落点、自动提交、维护。
+  - `AGENTS.md`：给 agent 定位——按 `dev-init/AGENTS-example.md` 生成，至少含一句话定位、开发流程、调试约定（改完先问再开浏览器）、记忆落点、提交与发布；项目细节放 `docs/`。
   - `docs/`：项目特有细节的落点——`architecture.md`（目录、文件职责、入口生命周期、站点清单）、`conventions.md`（编码约定）、`known-issues.md`（站点改版与坑）；新功能与机制按 `docs/features/`、`docs/logic/` 记录。
 - 文档地图的指针写「什么时候去读」（分支），不写「那个文件里有什么」；每条事实只留一处，项目细节不进 `AGENTS.md`。新增文件或改职责时同步更新 `docs/architecture.md` 与文档地图。
 

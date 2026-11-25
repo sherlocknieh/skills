@@ -9,9 +9,9 @@ description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目�
 
 - **全局技能**：把 `global` 场景的常驻技能链到 `~/.agents/skills/`。
 - **项目技能**：按项目场景把本仓库的技能链接或复制到 `<project>/.agents/skills/`。
-- **项目提示词**：`<project>/AGENTS.md` 缺失时建最小骨架，已有则只补缺失的「自动提交」小节；内容型文件（超 40 行或混入项目细节）由 `dev-init` 收成索引、细节拆到 `docs/`，并建 `.github/copilot-instructions.md` 指向它的符号链接。
+- **项目提示词**：`<project>/AGENTS.md` 缺失时建最小骨架，已有则只补缺失的「自动提交」小节；其余章节由 `dev-init` 按 `AGENTS-example.md` 补齐（含调试约定），并建 `.github/copilot-instructions.md` 指向它的符号链接。
 
-技能默认建链接，不复制内容；需要固定版本或在项目内修改技能时才用 `--copy` 复制。仓库更新后链接自动生效。项目 `AGENTS.md` 只在缺失时建一次骨架，本技能不改已有正文，只补「自动提交」约定；其余章节由 `dev-init` / `system-init` 补全，内容型 `AGENTS.md` 也由 `dev-init` 重写为索引。
+技能默认建链接，不复制内容；需要固定版本或在项目内修改技能时才用 `--copy` 复制。仓库更新后链接自动生效。项目 `AGENTS.md` 只在缺失时建一次骨架，本技能不改已有正文，只补「自动提交」约定；其余章节由 `dev-init` / `system-init` 按模板补齐。
 
 全局 `~/.agents/skills/` 只放 `global` 场景那五条常驻技能（全局规则入口 + 技能安装入口 + 按需路由 + 技能发现入口 + 文档写作规范），不要把所有技能都装进去。其余场景技能一律按项目安装。
 
@@ -190,7 +190,7 @@ readlink .github/copilot-instructions.md   # 应为 ../AGENTS.md
 ```
 
 - `<项目名>` 与一句话简介按仓库实际填写，不要留占位符；其余章节留给 init 技能补全。
-- 已有 `AGENTS.md` 超过 40 行或混入项目细节时，本步仍不动正文；第 8 步执行 `dev-init` 时按「收成索引、细节外移」重写，拆出的内容落到 `docs/`。
+- 已有 `AGENTS.md` 混入项目细节时，本步不改正文；第 8 步执行 `dev-init` 时按「细节外移」搬到 `docs/`，并对照模板补齐 `开发流程`、`调试约定` 等缺失章节。
 - 「自动提交」小节是项目的固定约定，不是可选章节：骨架里自带；已有 `AGENTS.md` 缺它时追加到末尾，已有则跳过（`grep -q '^## 自动提交'`）。
 - `AGENTS.md` 是符号链接时，追加到它指向的文件，不要替换链接本身。
 - Copilot 会读 `AGENTS.md`，但不保证最先加载；`.github/copilot-instructions.md` 保证最先注入，所以用相对符号链接指向它，不复制正文。
@@ -213,7 +213,7 @@ readlink .github/copilot-instructions.md   # 应为 ../AGENTS.md
 
 执行方式：读取该技能目录下的 `SKILL.md`，按其步骤继续执行；此时它的前置条件已经满足（技能已链接、仓库根已解析）。
 
-- `dev-init`：在项目根目录运行；索引型 `AGENTS.md` 只补缺失章节，内容型按它的「重写既有 AGENTS.md」收成索引并把项目细节拆到 `docs/`；`AGENTS.md` 与 Copilot 链接已由第 7 步建好，不要重写 Copilot 链接。
+- `dev-init`：在项目根目录运行；把 `AGENTS-example.md` 复制为 `AGENTS.md` 并填好占位符，或对已有文件补齐缺失章节；项目细节搬到 `docs/`；`AGENTS.md` 与 Copilot 链接已由第 7 步建好，不要重写 Copilot 链接。
 - `frontend-init`：在 `dev-init` 之后运行，只补缺失的工程配置（含 `vite.config` 的 `server.open: true`）；已有工具链不替换，用户脚本项目交给 `userscript-dev`。
 - `system-init`：同样只补缺失章节；与 `dev-init` 同时执行时先跑 `dev-init` 建基础结构，再由 `system-init` 补「系统环境」等章节，不要重写已有内容。
 - `opencode-init`：属于全局配置，动手前先备份 `~/.config/opencode`（备份放本机，不进技能目录）。全局规则 `AGENTS.md` 由 `agent-init` 技能以软链安装，只维护仓库真源，不要在任何技能里另存正文副本。
