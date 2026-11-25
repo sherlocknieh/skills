@@ -17,52 +17,43 @@
 
 我打算让所有 Agent 都加载同一份全局提示词，方便统一管理和更新。
 
+以本仓库下的 `AGENTS.md` 为唯一源文件，按需链接到各 Agent 的默认路径下。
+
 ### 手动安装
 
-- 把本仓库克隆到固定的个人惯用路径下，例如 `~/Projects/skills`；
-- 然后可以按需把 `AGENTS.md` 链接到各 Agent 的默认路径下；
+- 把本仓库克隆到固定的惯用目录下；
+- 把 `AGENTS.md` 链接到各 Agent 支持的路径下；
+以 OpenCode 为例：
   ```bash
-  # OpenCode:
-  ln -s ~/Projects/skills/AGENTS.md ~/.config/opencode/AGENTS.md
+  ln -s <仓库所在目录>/skills/AGENTS.md ~/.config/opencode/AGENTS.md
   ```
 
-### 自动安装
+> [!INFO] 自动安装
+> - 用任意 Agent 打开本仓库，让它读取并执行 `agents-init` 技能自动安装。
 
-- 用任意 Agent 打开本仓库，让它调用 `agents-init` 技能自动安装。
-
-> [!INFO]
-> 任意项目会话都会加载全局提示词的全部内容，请保持精简。项目专用提示词应放在项目目录下的 `<project>/AGENTS.md`。
+> [!WARNING]
+> 创建符号链接后，移动或重命名使仓库路径发生变化会使链接失效。变化后需重新安装。
 
 
 ## 2. 全局技能: [global-skills](./global-skills/)
 
-全局技能的 name 和 description 会暴露给所有 Agent、所有项目和所有会话（技能的 description 内容放在 SKILL.md 中和放在 AGENTS.md 中基本没有区别）；
+全局技能的 name 和 description 会暴露给所有 Agent、所有项目和所有会话；
 
-只留三个元技能：`agents-init`、`project-init` 和 `skills-init`。
-
-### 自动安装
-
-- 用任意 Agent 打开本仓库，让它调用 `skills-init` 技能自动安装。
+故只选了三个技能：`agents-init`、`project-init` 和 `skills-init` 做全局技能，其他技能都属于项目技能，由具体项目按需安装。
 
 ### 手动安装
 
-各大主流 Agent 都支持自动加载 `~/.agents/skills` 技能目录。
-
-为了按需暴露技能，应把本仓库克隆到不被任何 Agent 自动加载的路径，
-再把 `global-skills` 整个目录链接到 `~/.agents/skills/global-skills`：
+只需把 `global-skills` 目录链接到 `~/.agents/skills/global-skills` 即可：
 
 ```bash
-# 改成你的惯用目录
-DIR="$HOME/Projects"
-# 进入目录
-mkdir -p "$DIR" && cd "$DIR"
-# 克隆仓库
-git clone https://github.com/sherlocknieh/skills.git
-# 创建 ~/.agents/skills 目录（如果不存在）
-mkdir -p ~/.agents/skills
-# 链接安装全局技能
-ln -sfn $DIR/skills/global-skills/ ~/.agents/skills/
+ln -sfn <仓库所在目录>/skills/global-skills/ ~/.agents/skills/
 ```
+
+各大主流 Agent 都支持 `~/.agents/skills` 技能目录。
+
+> [!INFO] 自动安装
+> - 用任意 Agent 打开本仓库，让它读取并执行 `skills-init` 技能进行自动安装。
+
 
 ## 三、项目技能 & 项目提示词
 
@@ -80,9 +71,8 @@ ln -sfn $DIR/skills/global-skills/ ~/.agents/skills/
 
 ### 安装步骤
 
-完成第一节的 "安装全局技能" 后:
+全局技能安装后:
 
-或者在任意目录下打开会话直接开始工作, 你的行为会被 `skills-init` 智能捕捉, 并提示你是否加载相关技能。
+- 在任意项目下使用 `project-init` 技能完成项目相关技能与提示词的安装。
 
-
-在任意项目目录下使用 `project-init` 技能会完成项目相关技能与提示词的安装。
+- 在任意目录下打开会话直接开始工作, `skills-init` 技能会智能识别你的需求, 并提示你是否加载相关技能。
