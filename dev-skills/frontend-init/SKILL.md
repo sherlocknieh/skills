@@ -38,7 +38,7 @@ description: 前端项目工程基线初始化：探测框架、包管理器与�
 
 ## 3. 文档衔接
 
-- 项目还没有 `AGENTS.md`：收尾时接续执行 `dev-init`，由它建索引与 `.github/copilot-instructions.md`。
+- 项目还没有 `AGENTS.md`：收尾时接续执行 `dev-init`，由它复制 AGENTS 模板（占位符保留）并建 `.github/copilot-instructions.md`。
 - 已有 `AGENTS.md`：不改它的结构，只把开发命令、默认值例外登记到 `docs/development.md`，指针由 `dev-init` 维护。
 
 ## 4. 校验

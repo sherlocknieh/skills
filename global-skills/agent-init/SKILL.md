@@ -91,6 +91,6 @@ diff -q "$REPO_ROOT/AGENTS.md" ~/.config/opencode/AGENTS.md
 
 Copilot 用 `copilot-instructions.md` 而不是 `~/.copilot/instructions/*.instructions.md`，后者是模块化指令，同一份正文放两处会重复注入。
 
-本技能只处理全局路径；项目级 `AGENTS.md` 对应的 `<project>/.github/copilot-instructions.md` 符号链接由 `dev-init` / `system-init` 负责，不要在这里代建。
+本技能只处理全局路径；项目级 `AGENTS.md` 对应的 `<project>/.github/copilot-instructions.md` 符号链接由 `project-init` 第 7 步主建，`dev-init` / `system-init` 幂等兜底，不要在这里代建。
 
 全局规则只维护仓库根目录的 `AGENTS.md` 真源，不要在任何技能里另存正文副本。
