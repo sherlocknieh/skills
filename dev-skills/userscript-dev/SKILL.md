@@ -102,9 +102,10 @@ description: "油猴脚本（Tampermonkey / Violentmonkey / Greasemonkey / Scrip
 - 改动代码时同步重写受影响的注释，保留最初动机和最新现状。
 - 文档三层分工，别混：
   - `README.md`：给用户——功能列表、安装地址、效果说明。
-  - `README-dev.md`：给开发——环境、`dev` / `dev:csp` 用法、构建与发布流程。
-  - `AGENTS.md`：给 agent 和自己定位代码——文件职责表、关键不变量、**常见任务 → 先读哪些文件**、改动路径。
-- `AGENTS.md` 开头就声明它是"定位文件的速查表，不是项目介绍"，并要求结构变化时同步更新；新增文件或改职责必须同步这张表，否则下次还得从头扫仓库。
+  - `docs/development.md`：给开发——环境、`dev` / `dev:csp` 用法、构建与发布流程。
+  - `AGENTS.md`：给 agent 定位——≤40 行索引，只放一句话定位、文档地图、开工流程、记忆落点、自动提交、维护。
+  - `docs/`：项目特有细节的落点——`architecture.md`（目录、文件职责、入口生命周期、站点清单）、`conventions.md`（编码约定）、`known-issues.md`（站点改版与坑）；新功能与机制按 `docs/features/`、`docs/logic/` 记录。
+- 文档地图的指针写「什么时候去读」（分支），不写「那个文件里有什么」；每条事实只留一处，项目细节不进 `AGENTS.md`。新增文件或改职责时同步更新 `docs/architecture.md` 与文档地图。
 
 ## 提交
 
