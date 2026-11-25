@@ -9,9 +9,9 @@ description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目�
 
 - **全局技能**：把 `global` 场景的常驻技能链到 `~/.agents/skills/`。
 - **项目技能**：按项目场景把本仓库的技能链接或复制到 `<project>/.agents/skills/`。
-- **项目提示词**：`<project>/AGENTS.md` 缺失时建最小骨架，已有则只补缺失的「自动提交」小节；其余章节由 `dev-init` 按 `AGENTS-example.md` 补齐（含调试约定），并建 `.github/copilot-instructions.md` 指向它的符号链接。
+- **项目提示词**：`<project>/AGENTS.md` 缺失时，`dev` 场景由 `dev-init` 原样复制 `AGENTS-example.md`（保留占位符作为弹窗入口），其他场景建最小骨架；已有则只补缺失的「自动提交」小节；并建 `.github/copilot-instructions.md` 指向它的符号链接。
 
-技能默认建链接，不复制内容；需要固定版本或在项目内修改技能时才用 `--copy` 复制。仓库更新后链接自动生效。项目 `AGENTS.md` 只在缺失时建一次骨架，本技能不改已有正文，只补「自动提交」约定；其余章节由 `dev-init` / `system-init` 按模板补齐。
+技能默认建链接，不复制内容；需要固定版本或在项目内修改技能时才用 `--copy` 复制。仓库更新后链接自动生效。项目 `AGENTS.md` 只在缺失时建一次，本技能不改已有正文，只补「自动提交」约定；`dev` 场景的正文由 `dev-init` 复制模板后逐步弹窗补齐。
 
 全局 `~/.agents/skills/` 只放 `global` 场景那五条常驻技能（全局规则入口 + 技能安装入口 + 按需路由 + 技能发现入口 + 文档写作规范），不要把所有技能都装进去。其余场景技能一律按项目安装。
 
@@ -151,10 +151,13 @@ rm .agents/skills/<name>
 
 ## 7. 建项目 AGENTS.md 与 Copilot 链接
 
-项目范围（`project` / `both`）在项目根目录执行。先建最小骨架，再建链接；已有 `AGENTS.md` 不覆盖，只补缺失的「自动提交」小节（内容型文件的重写留给第 8 步 `dev-init`）。
+项目范围（`project` / `both`）在项目根目录执行。先确定 `AGENTS.md`，再建链接；已有 `AGENTS.md` 不覆盖，只补缺失的「自动提交」小节。
+
+`AGENTS.md` 缺失时按场景处理：`dev` 场景不在本步建骨架，交给第 8 步 `dev-init` 原样复制 `AGENTS-example.md`；其他场景建最小骨架。
 
 ```bash
-if [[ ! -e AGENTS.md && ! -L AGENTS.md ]]; then
+# SCENARIO 取 dev / system / content；dev 场景跳过建骨架，由 dev-init 复制模板
+if [[ ! -e AGENTS.md && ! -L AGENTS.md && "$SCENARIO" != dev ]]; then
   cat > AGENTS.md <<'EOF'
 # <项目名>
 
@@ -189,8 +192,8 @@ ln -sfn ../AGENTS.md .github/copilot-instructions.md
 readlink .github/copilot-instructions.md   # 应为 ../AGENTS.md
 ```
 
-- `<项目名>` 与一句话简介按仓库实际填写，不要留占位符；其余章节留给 init 技能补全。
-- 已有 `AGENTS.md` 混入项目细节时，本步不改正文；第 8 步执行 `dev-init` 时按「细节外移」搬到 `docs/`，并对照模板补齐 `开发流程`、`调试约定` 等缺失章节。
+- 占位符（`<项目名>`、`<一句话…>`、模板里的 `<...>` / `[待定]`）原样保留，它们是后续会话弹窗提问的触发点；不要预填，也不要为了"完整"删掉。
+- 已有 `AGENTS.md` 混入项目细节时，本步不改正文；第 8 步执行 `dev-init` 时按「细节外移」搬到 `docs/`，并逐节对照模板补齐 `开发流程`、`调试约定` 等缺失章节。
 - 「自动提交」小节是项目的固定约定，不是可选章节：骨架里自带；已有 `AGENTS.md` 缺它时追加到末尾，已有则跳过（`grep -q '^## 自动提交'`）。
 - `AGENTS.md` 是符号链接时，追加到它指向的文件，不要替换链接本身。
 - Copilot 会读 `AGENTS.md`，但不保证最先加载；`.github/copilot-instructions.md` 保证最先注入，所以用相对符号链接指向它，不复制正文。
@@ -213,7 +216,7 @@ readlink .github/copilot-instructions.md   # 应为 ../AGENTS.md
 
 执行方式：读取该技能目录下的 `SKILL.md`，按其步骤继续执行；此时它的前置条件已经满足（技能已链接、仓库根已解析）。
 
-- `dev-init`：在项目根目录运行；把 `AGENTS-example.md` 复制为 `AGENTS.md` 并填好占位符，或对已有文件补齐缺失章节；项目细节搬到 `docs/`；`AGENTS.md` 与 Copilot 链接已由第 7 步建好，不要重写 Copilot 链接。
+- `dev-init`：在项目根目录运行；把 `AGENTS-example.md` 原样复制为 `AGENTS.md`，占位符保留给后续会话弹窗自迭代；已有文件则补齐缺失章节并把项目细节搬到 `docs/`；`AGENTS.md` 与 Copilot 链接已由第 7 步建好，不要重写 Copilot 链接。
 - `frontend-init`：在 `dev-init` 之后运行，只补缺失的工程配置（含 `vite.config` 的 `server.open: true`）；已有工具链不替换，用户脚本项目交给 `userscript-dev`。
 - `system-init`：同样只补缺失章节；与 `dev-init` 同时执行时先跑 `dev-init` 建基础结构，再由 `system-init` 补「系统环境」等章节，不要重写已有内容。
 - `opencode-init`：属于全局配置，动手前先备份 `~/.config/opencode`（备份放本机，不进技能目录）。全局规则 `AGENTS.md` 由 `agent-init` 技能以软链安装，只维护仓库真源，不要在任何技能里另存正文副本。
