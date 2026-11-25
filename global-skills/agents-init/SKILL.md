@@ -7,11 +7,16 @@ description: 把唯一全局 AGENTS.md 以符号链接方式装到常见 Agent �
 
 ## 1. 定位仓库
 
-真源只有一个：仓库根目录的 `AGENTS.md`。`install-agents.sh` 与本文件同目录，先算出这两个变量再往下走：
+真源只有一个：仓库根目录的 `AGENTS.md`，`install-agents.sh` 就在本文件同目录。会话已给出本文件路径时直接用；给不出就按候选探测，取第一个存在的：
 
 ```bash
-AGENT_INIT=$(dirname -- "$(readlink -f -- <本文件的路径>)")   # global-skills/agents-init
-REPO_ROOT=$(dirname -- "$(dirname -- "$AGENT_INIT")")         # 仓库根
+AGENT_INIT=
+for p in "<本文件的路径>" \
+         "$(git rev-parse --show-toplevel 2>/dev/null)/global-skills/agents-init/SKILL.md" \
+         ~/.agents/skills/global-skills/agents-init/SKILL.md; do
+  [[ -f $p ]] && { AGENT_INIT=$(dirname -- "$(readlink -f -- "$p")"); break; }
+done
+REPO_ROOT=$(dirname -- "$(dirname -- "${AGENT_INIT:-/}")")   # 仓库根
 ```
 
 入口可能有三类，`readlink -f` 会把它们收敛成同一条真实路径，不需要分别处理：
@@ -20,7 +25,7 @@ REPO_ROOT=$(dirname -- "$(dirname -- "$AGENT_INIT")")         # 仓库根
 - 在别的目录打开 Agent，用户粘贴了 `.../global-skills/agents-init/SKILL.md` 这个路径；
 - 经 `~/.agents/skills/global-skills` 软链接触发，真实路径仍是上面的仓库。
 
-算出路径后向用户确认一次。若粘贴的路径不存在，或 `$REPO_ROOT/AGENTS.md` 不存在（技能被单独复制出来、已脱离仓库），停下来问用户真实的仓库路径，不要自己造一份正文。
+`$AGENT_INIT` 为空（技能被单独复制、链接断了），或 `$REPO_ROOT/AGENTS.md` 不存在时，停下来问用户真实的仓库路径，不要猜，也不要自己造一份正文。拿到路径后向用户确认一次。
 
 ## 2. 检测已安装的 Agent
 
