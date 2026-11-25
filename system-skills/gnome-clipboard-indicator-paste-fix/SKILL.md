@@ -17,8 +17,8 @@ description: 修复 GNOME「Clipboard Indicator」扩展的两个独立问题：
 一键应用（幂等，自动备份，检测不到预期代码会直接报错且不写文件）：
 
 ```bash
-# 项目内安装优先，标准全局安装回退
-SKILL_DIR=$(dirname "$(readlink -f .agents/skills/gnome-clipboard-indicator-paste-fix/SKILL.md 2>/dev/null || readlink -f ~/.agents/skills/system-skills/gnome-clipboard-indicator-paste-fix/SKILL.md)")
+# 项目内安装优先；本技能不装到全局，缺了先按 skills-init 的 system 场景链接安装
+SKILL_DIR=$(dirname "$(readlink -f .agents/skills/gnome-clipboard-indicator-paste-fix/SKILL.md 2>/dev/null)")
 python3 "$SKILL_DIR/apply.py"
 ```
 

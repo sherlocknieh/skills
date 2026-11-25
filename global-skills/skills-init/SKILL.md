@@ -1,6 +1,6 @@
 ---
 name: skills-init
-description: 管理技能安装并按需路由：安装全局常驻技能；会话中识别工作类型，当项目缺少对应技能时提议临时读取、符号链接或复制安装。关键词：skills-init、全局技能、按需加载、临时加载、链接安装、复制安装、工作类型、修输入法、蓝牙、GNOME、调试、学习、做视频。
+description: 为系统/项目/会话安装技能；首次出现开发、系统管理、学习或创作任务时识别工作类型，项目缺少对应技能则提议临时加载、链接或复制安装。关键词：skills-init、全局技能、按需加载、临时加载、链接安装、复制安装、工作类型、修输入法、蓝牙、GNOME、调试、学习、做视频。
 ---
 
 # skills-init
@@ -11,14 +11,16 @@ description: 管理技能安装并按需路由：安装全局常驻技能；会�
 
 ## 安装全局常驻技能
 
-用户明确要求安装全局技能、初始化新环境或切换 Agent 时，安装 `global` 场景技能到 `~/.agents/skills/`：
+用户明确要求安装全局技能、初始化新环境或切换 Agent 时，把整个 `global-skills` 目录链接到 `~/.agents/skills/global-skills`：
 
 ```bash
-SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md)")
+SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/global-skills/skills-init/SKILL.md)")
 "$SKILLS_INIT/link-skills.sh" --scenario global
 ```
 
-仓库根目录需要同时包含 `AGENTS.md` 与 `global-skills/skills-init/`。只安装 `global` 场景列出的常驻技能；全局提示词由 `agents-init` 管理，领域技能按需安装到项目，不要把整个技能仓库链入全局目录。
+`--scenario global` 只产出这一条目录链接，等价于 `ln -sfn <仓库>/global-skills ~/.agents/skills/global-skills`，顺带清掉旧版留下的逐技能散链接。仓库换路径后重跑该命令即可恢复，不要逐个修链接。
+
+仓库根目录需要同时包含 `AGENTS.md` 与 `global-skills/skills-init/`。全局只暴露 `global-skills` 这一层，所以该目录只放常驻技能；全局提示词由 `agents-init` 管理，领域技能按需安装到项目，不要把整个技能仓库链入全局目录。
 
 ## 何时判断
 
@@ -44,7 +46,7 @@ SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md)")
 
 ```bash
 ls .agents/skills 2>/dev/null
-ls ~/.agents/skills 2>/dev/null
+ls ~/.agents/skills/global-skills 2>/dev/null
 ```
 
 - 该场景需要的技能已在项目或全局技能目录里：不弹窗，直接继续任务
@@ -53,10 +55,10 @@ ls ~/.agents/skills 2>/dev/null
 
 ## 定位源仓库
 
-`skills-init` 自身位于仓库 `global-skills/skills-init/`；全局安装时 `~/.agents/skills/skills-init` 是指向它的符号链接：
+`skills-init` 自身位于仓库 `global-skills/skills-init/`；全局安装时 `~/.agents/skills/global-skills` 是整个目录的符号链接，`readlink -f` 会一路解析回仓库：
 
 ```bash
-SKILL_DIR=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md 2>/dev/null || echo "$PWD/global-skills/skills-init/SKILL.md")")
+SKILL_DIR=$(dirname "$(readlink -f ~/.agents/skills/global-skills/skills-init/SKILL.md 2>/dev/null || echo "$PWD/global-skills/skills-init/SKILL.md")")
 REPO_ROOT=$(dirname "$(dirname "$SKILL_DIR")")
 test -f "$REPO_ROOT/global-skills/skills-init/link-skills.sh" && echo "$REPO_ROOT"
 ```
@@ -70,7 +72,7 @@ test -f "$REPO_ROOT/global-skills/skills-init/link-skills.sh" && echo "$REPO_ROO
 | 选项 | 行为 |
 | --- | --- |
 | 临时加载 | 本次会话直接读源仓库里的 `SKILL.md` 并按它执行；不写任何文件 |
-| 链接安装 | 在 `.agents/skills/` 建符号链接，跟随仓库更新；项目仓库内推荐 |
+| 链接安装 | 项目内在 `.agents/skills/` 逐技能建符号链接，跟随仓库更新；全局安装则是整目录链接；项目仓库内推荐 |
 | 复制安装 | 复制成项目自有副本，可修改、可提交；需要固定版本或在项目内改技能时选 |
 | 跳过 | 不加载，按通用能力继续；本次会话不再问同一场景 |
 

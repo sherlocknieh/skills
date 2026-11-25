@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# skills-init: 按场景把本仓库的技能链接或复制到 .agents/skills/（global 场景装到 ~/.agents/skills/）
+# skills-init: 按场景把本仓库的技能链接或复制到 .agents/skills/
+# （global 场景把整个 global-skills 目录链到 ~/.agents/skills/global-skills）
 set -euo pipefail
 
 if ((BASH_VERSINFO[0] < 4)); then
@@ -15,6 +16,7 @@ DRY_RUN=0
 LIST_ONLY=0
 SCENARIOS=()
 EXPLICIT=()
+GLOBAL_SELECTED=0
 
 die() {
   printf '错误: %s\n' "$1" >&2
@@ -26,7 +28,7 @@ usage() {
 用法: link-skills.sh --scenario <场景> [--scenario <场景> ...] [选项] [技能 ...]
 
 场景:
-  global    全局（常驻所有会话，默认装入 ~/.agents/skills）
+  global    全局（常驻所有会话；整目录链接到 ~/.agents/skills/global-skills）
   dev       软件开发
   system    系统管理（含 OpenCode 自身配置）
   learn     学习
@@ -45,6 +47,11 @@ usage() {
 技能:
   可传技能目录名（如 dev-init）或仓库内相对路径（如 dev-skills/dev-init），
   用于场景之外的单点补充。同名技能只会链接一次。
+
+说明:
+  global 场景只产出一条 global-skills 目录链接，仓库换路径后重跑本命令
+  （或 ln -sfn <新仓库>/global-skills ~/.agents/skills/global-skills）即可恢复。
+  其他场景仍按技能逐个链接。
 
 示例:
   link-skills.sh --scenario global
@@ -202,6 +209,9 @@ if ((LIST_ONLY)); then
   printf '可用场景：\n'
   for _scenario in global dev system learn create other; do
     printf '\n  %-8s %s\n' "$_scenario" "$(scenario_label "$_scenario")"
+    if [[ $_scenario == global ]]; then
+      printf '    整目录链接 -> ~/.agents/skills/global-skills\n'
+    fi
     _skills=$(scenario_skills "$_scenario")
     if [[ -z $_skills ]]; then
       printf '    （不装默认技能，需附具体技能名）\n'
@@ -261,6 +271,10 @@ add_skill() {
 }
 
 for _scenario in "${SCENARIOS[@]}"; do
+  if [[ $_scenario == global ]]; then
+    GLOBAL_SELECTED=1
+    continue
+  fi
   while IFS= read -r _rel; do
     add_skill "$_rel"
   done < <(scenario_skills "$_scenario")
@@ -271,7 +285,7 @@ for _arg in "${EXPLICIT[@]}"; do
   add_skill "$_rel"
 done
 
-(( ${#ORDER[@]} > 0 )) \
+(( ${#ORDER[@]} + GLOBAL_SELECTED > 0 )) \
   || die "未选中任何技能：other 场景不装默认技能，请附具体技能名（如 --scenario other diagnosing-bugs）"
 
 if [[ -z $DEST_ROOT ]]; then
@@ -297,9 +311,79 @@ fi
 created=0
 replaced=0
 skipped=0
+migrated=0
 failed=0
 
-for name in "${ORDER[@]}"; do
+GLOBAL_SRC="$SOURCE_ROOT/global-skills"
+GLOBAL_LINK="$DEST_ROOT/global-skills"
+
+if ((GLOBAL_SELECTED)); then
+  if [[ ! -f $GLOBAL_SRC/skills-init/SKILL.md ]]; then
+    printf '  失败 global-skills：源目录缺少 skills-init/SKILL.md（%s）\n' "$GLOBAL_SRC" >&2
+    ((failed += 1))
+  elif [[ $MODE == copy ]]; then
+    if [[ -e $GLOBAL_LINK || -L $GLOBAL_LINK ]]; then
+      printf '  跳过 global-skills：目标已存在（%s），未覆盖\n' "$GLOBAL_LINK" >&2
+      ((skipped += 1))
+    elif ((DRY_RUN)); then
+      printf '  + global-skills（将复制 <- global-skills）\n'
+      ((created += 1))
+    else
+      cp -a -- "$GLOBAL_SRC" "$GLOBAL_LINK"
+      printf '  + global-skills（已复制 <- global-skills）\n'
+      ((created += 1))
+    fi
+  elif [[ -L $GLOBAL_LINK ]]; then
+    current=$(readlink -f -- "$GLOBAL_LINK" || true)
+    if [[ $current == "$GLOBAL_SRC" ]]; then
+      printf '  = global-skills（已链接）\n'
+      ((skipped += 1))
+    elif ((DRY_RUN)); then
+      printf '  ~ global-skills -> %s（将替换）\n' "$GLOBAL_SRC"
+      ((replaced += 1))
+    else
+      ln -sfn -- "$GLOBAL_SRC" "$GLOBAL_LINK"
+      printf '  ~ global-skills -> %s（已替换）\n' "$GLOBAL_SRC"
+      ((replaced += 1))
+    fi
+  elif [[ -e $GLOBAL_LINK ]]; then
+    printf '  失败 global-skills：目标已存在且不是符号链接（%s），未覆盖\n' "$GLOBAL_LINK" >&2
+    ((failed += 1))
+  else
+    if ((DRY_RUN)); then
+      printf '  + global-skills -> %s\n' "$GLOBAL_SRC"
+    else
+      ln -s -- "$GLOBAL_SRC" "$GLOBAL_LINK"
+      printf '  + global-skills -> %s\n' "$GLOBAL_SRC"
+    fi
+    ((created += 1))
+  fi
+
+  # 旧版逐技能安装会在目标目录留下指向同一仓库的散链接，清掉以免重复暴露
+  if [[ -d $DEST_ROOT ]]; then
+    while IFS= read -r _rel; do
+      _name=$(basename -- "$_rel")
+      _legacy="$DEST_ROOT/$_name"
+      [[ -L $_legacy ]] || continue
+      current=$(readlink -f -- "$_legacy" || true)
+      [[ $current == "$GLOBAL_SRC/$_name" ]] || continue
+      if ((DRY_RUN)); then
+        printf '  - %s（旧版逐技能链接，将移除）\n' "$_name"
+      else
+        rm -f -- "$_legacy"
+        printf '  - %s（已移除旧版逐技能链接）\n' "$_name"
+      fi
+      ((migrated += 1))
+    done < <(scenario_skills global)
+  fi
+
+  if ((!DRY_RUN)) && [[ ! -f $GLOBAL_LINK/skills-init/SKILL.md ]]; then
+    printf '  失败 global-skills：链接后读不到 skills-init/SKILL.md\n' >&2
+    ((failed += 1))
+  fi
+fi
+
+for name in ${ORDER[@]+"${ORDER[@]}"}; do
   rel=${SELECTED_BY_NAME[$name]}
   src="$SOURCE_ROOT/$rel"
   link="$DEST_ROOT/$name"
@@ -369,7 +453,8 @@ for name in "${ORDER[@]}"; do
   fi
 done
 
-printf '\n结果：新建 %d，替换 %d，跳过 %d，失败 %d\n' "$created" "$replaced" "$skipped" "$failed"
+printf '\n结果：新建 %d，替换 %d，跳过 %d，清理旧链接 %d，失败 %d\n' \
+  "$created" "$replaced" "$skipped" "$migrated" "$failed"
 printf '方式：%s\n' "$([[ $MODE == copy ]] && echo 复制 || echo 符号链接)"
 printf '目标：%s\n' "$DEST_ROOT"
 

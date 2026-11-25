@@ -48,17 +48,17 @@ test -d .agents/skills && echo skills-ok
 
 ## 1. 定位技能仓库
 
-本技能自身位于仓库的 `global-skills/project-init/` 下。全局安装时 `~/.agents/skills/project-init` 是指向该目录的符号链接，先解析真实路径：
+本技能自身位于仓库的 `global-skills/project-init/` 下。全局安装时 `~/.agents/skills/global-skills` 是整个目录的符号链接，先解析真实路径：
 
 ```bash
-SKILL_DIR=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
+SKILL_DIR=$(dirname "$(readlink -f ~/.agents/skills/global-skills/project-init/SKILL.md)")
 REPO_ROOT=$(dirname "$(dirname "$SKILL_DIR")")
 test -f "$REPO_ROOT/AGENTS.md" && test -f "$REPO_ROOT/global-skills/skills-init/link-skills.sh" && echo "$REPO_ROOT"
 ```
 
-`~/.agents/skills/project-init` 不存在时，用当前会话实际加载到的 `global-skills/project-init/SKILL.md` 路径取上两级。仍不确定就问用户仓库位置，不要猜。
+`~/.agents/skills/global-skills/project-init` 不存在时，用当前会话实际加载到的 `global-skills/project-init/SKILL.md` 路径取上两级。仍不确定就问用户仓库位置，不要猜。
 
-仓库根目录必须同时有 `AGENTS.md` 和 `global-skills/skills-init/link-skills.sh`。两者都对不上时停下，告诉用户把本仓库 clone 到任意固定目录（如 `~/Projects/skills`），再把 `global-skills/project-init` 链到 `~/.agents/skills/project-init`。
+仓库根目录必须同时有 `AGENTS.md` 和 `global-skills/skills-init/link-skills.sh`。两者都对不上时停下，告诉用户把本仓库 clone 到任意固定目录（如 `~/Projects/skills`），再把 `global-skills` 整目录链到 `~/.agents/skills/global-skills`。
 
 ## 2. 项目范围与职责边界
 
@@ -69,11 +69,11 @@ test -f "$REPO_ROOT/AGENTS.md" && test -f "$REPO_ROOT/global-skills/skills-init/
 项目技能的场景选择与项目初始化由本技能编排；实际链接或复制通过 `skills-init` 的脚本完成：
 
 ```bash
-SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md)")
+SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/global-skills/skills-init/SKILL.md)")
 "$SKILLS_INIT/link-skills.sh" --scenario dev
 ```
 
-目标默认为当前项目的 `.agents/skills`。全局场景和 `~/.agents/skills` 由 `skills-init` 单独管理。
+目标默认为当前项目的 `.agents/skills`。全局场景与 `~/.agents/skills/global-skills` 由 `skills-init` 单独管理。
 
 ## 4. 确认目标项目
 
@@ -97,7 +97,7 @@ SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md)")
 需要看每个场景包含哪些技能时，运行（命令自带源路径解析，不依赖上一条命令的变量）：
 
 ```bash
-SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md)")
+SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/global-skills/skills-init/SKILL.md)")
 "$SKILLS_INIT/link-skills.sh" --list
 ```
 
@@ -108,7 +108,7 @@ SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md)")
 ## 6. 安装
 
 ```bash
-SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/skills-init/SKILL.md)")
+SKILLS_INIT=$(dirname "$(readlink -f ~/.agents/skills/global-skills/skills-init/SKILL.md)")
 "$SKILLS_INIT/link-skills.sh" --scenario dev
 # 多选：--scenario dev --scenario learn
 # 复制安装（目标已有同名目录时跳过）：--scenario dev --copy

@@ -1,8 +1,8 @@
 # global-skills
 
-常驻技能。安装到 `~/.agents/skills/`，每个项目会话都会加载它们的 name 和 description。
+常驻技能。整个目录链接到 `~/.agents/skills/global-skills`，每个项目会话都会加载它们的 name 和 description。
 
-其中 `agents-init` 负责安装全局 `AGENTS.md`：它随本组技能链入 `~/.agents/skills/`，agent 每个会话都会看到它的 name 和 description，在需要时自动发现并触发。全局规则不由 `project-init` 安装。
+其中 `agents-init` 负责安装全局 `AGENTS.md`：它随本组技能链入 `~/.agents/skills/global-skills/`，agent 每个会话都会看到它的 name 和 description，在需要时自动发现并触发。全局规则不由 `project-init` 安装。
 
 在仓库根目录运行：
 
@@ -10,7 +10,9 @@
 global-skills/skills-init/link-skills.sh --scenario global
 ```
 
-链入后新开一个 Agent 会话，说「你好」「测试」「初始化」或「安装全局 AGENTS.md」即可触发 `agents-init`：它先用 `--list` 检测本机已安装哪些 Agent，再弹窗只列已安装的那些让你勾选，并选择安装/修复还是卸载（已装好且只是打声招呼时只回一句已就绪）；也可手动运行 `~/.agents/skills/agents-init/install-agents.sh --agent opencode` 或 `--agent opencode --uninstall`。
+只产出 `~/.agents/skills/global-skills` 这一条目录链接（等价于 `ln -sfn <仓库>/global-skills ~/.agents/skills/global-skills`）。仓库换路径后重跑这条命令即可恢复，不需要逐个修技能链接。
+
+链入后新开一个 Agent 会话，说「你好」「测试」「初始化」或「安装全局 AGENTS.md」即可触发 `agents-init`：它先用 `--list` 检测本机已安装哪些 Agent，再弹窗只列已安装的那些让你勾选，并选择安装/修复还是卸载（已装好且只是打声招呼时只回一句已就绪）；也可手动运行 `~/.agents/skills/global-skills/agents-init/install-agents.sh --agent opencode` 或 `--agent opencode --uninstall`。
 
 会话中出现明确任务（如「修一下输入法」）时，`skills-init` 会识别工作类型，并提议临时加载、链接安装或复制安装对应场景的技能。
 
@@ -52,4 +54,4 @@ global-skills/skills-init/link-skills.sh --scenario global
 1. 用 `git mv` 把技能目录移入或移出本目录（保留历史）；
 2. 同步 `skills-init/link-skills.sh` 里 `global` 场景的清单；
 3. 检查其他场景是否还引用旧路径（`--scenario <场景> --dry-run` 会报告缺失的 `SKILL.md`）；
-4. 本机重跑 `skills-init/link-skills.sh --scenario global`，旧链接指向旧路径时需要先删再建。
+4. 本机重跑 `skills-init/link-skills.sh --scenario global` 重建 `~/.agents/skills/global-skills`；仓库换路径后同样只需重跑这一条。

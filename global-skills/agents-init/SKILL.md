@@ -1,43 +1,18 @@
 ---
 name: agents-init
-description: 安装或卸载各 Agent 的全局指令文件：把本仓库根目录的 AGENTS.md 以符号链接装到 OpenCode、Claude Code、Codex、Copilot、Gemini CLI、Qwen Code、iFlow、Droid、Crush、Windsurf、Kiro、dsh、Pi 的全局提示词路径，或移除这些链接。触发后先用 --list 检测本机已安装哪些 Agent，再弹窗只列出已安装的 Agent 让用户勾选，并选择安装/修复还是卸载，按选择执行并校验。新会话开场、只打招呼（你好 / hi / hello）、只说「测试」「初始化」，或说「安装 / 卸载全局 AGENTS.md」「全局提示词」「全局规则」「修 AGENTS.md」时触发；开场只检查不弹窗，全部就绪则一句话说明并继续原对话。关键词：agents-init、安装全局 AGENTS.md、卸载全局提示词、全局规则、全局提示词、copilot-instructions、CLAUDE.md、GEMINI.md、QWEN.md、IFLOW.md、dsh、pi、符号链接、重建链接、换 Agent、新机器、你好、hi、hello、开场白、测试、初始化。
+description: 把唯一全局 AGENTS.md 以符号链接方式装到 OpenCode/Copilot/dsh/Pi...等常见 Agent 的全局提示词路径下。也用于修复/卸载。触发关键词：你好、hi、hello、测试、初始化、agents-init、全局 AGENTS.md、全局提示词、全局规则。
 ---
 
-# agents-init
+# 步骤
 
-职责：把仓库根目录的 `AGENTS.md` 装成各 Agent 的全局指令文件，或把这些链接卸掉。
-
-- 先检测：哪些 Agent 已装（配置目录存在）；未安装的不进弹窗选项。
-- 再弹窗：只列已安装的 Agent 让用户勾选，再选动作是安装还是卸载；不替用户挑 Agent。
-- 安装只建符号链接，不复制正文；仓库更新后链接自动生效。
-- 卸载只删指向本仓库 `AGENTS.md` 的链接，不删实体文件、不删指向别处的链接。
-- 不装技能、不改项目 `.agents/skills/`，那是 `project-init` 的职责。
-
-## 何时执行
-
-- 新会话开场，或用户只说了「你好 / hi / hello」
-- 用户只说了「测试」「初始化」（验证触发链路，与打招呼同等处理）
-- 新机器、首次接入某个 Agent；换了 Agent，或全局指令路径变化
-- 当前 Agent 读不到全局规则；全局指令文件缺失、指向错误、或不再是链接
-- 用户说「安装 / 卸载全局 AGENTS.md」「全局提示词」「全局规则」
-
-三种情况不走弹窗：
-
-- 打招呼或只说「测试」「初始化」：只跑 `--list` 检查。全部就绪就回一句已就绪，继续原对话，不要复述规则内容；有缺失或失效才进入下面的流程。
-- 用户已点名 Agent 和动作，例如「给 copilot 装上」「把 claude 的卸掉」：直接执行，不再弹窗。
-- 同一句话还命中其他技能，尤其「初始化」可能同时命中 `project-init`：按 `AGENTS.md` 第 2 条第 4 款先弹窗选技能，选定后再按本流程走。
-
-## 1. 定位仓库根
-
-本技能位于仓库的 `global-skills/agents-init/` 下。全局安装时 `~/.agents/skills/agents-init` 是指向该目录的符号链接：
+## 1. 定位
 
 ```bash
-AGENT_INIT=$(dirname "$(readlink -f ~/.agents/skills/agents-init/SKILL.md)")
-REPO_ROOT=$(dirname "$(dirname "$AGENT_INIT")")
-test -f "$REPO_ROOT/AGENTS.md" && test -f "$AGENT_INIT/install-agents.sh" && echo "$REPO_ROOT"
+AGENT_INIT=$(dirname "$(readlink -f ~/.agents/skills/global-skills/agents-init/SKILL.md)")
+test -f "$AGENT_INIT/install-agents.sh" && echo "$AGENT_INIT"
 ```
 
-`~/.agents/skills/agents-init` 不存在时，用当前会话实际加载到的 `global-skills/agents-init/SKILL.md` 路径取上两级。仍不确定就问用户仓库位置，不要猜。
+`~/.agents/skills/global-skills` 是指向仓库的整目录链接，`readlink -f` 会解析回真实路径；对不上时问用户仓库位置，不要猜。
 
 ## 2. 检测
 

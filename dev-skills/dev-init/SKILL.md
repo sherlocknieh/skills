@@ -41,7 +41,8 @@ description: 为项目初始化 AI 协作基线：把 AGENTS-example.md 原样�
 以 `AGENTS-example.md` 为唯一模板，原样复制，不要凭记忆另写一份精简版。先解析模板的真实路径，不要照抄占位符路径：
 
 ```bash
-DEV_INIT_DIR=$(dirname "$(readlink -f .agents/skills/dev-init/SKILL.md 2>/dev/null || readlink -f ~/.agents/skills/dev-init/SKILL.md)")
+# 项目内安装优先；dev-init 不装到全局，缺了就按 skills-init 的 dev 场景链接安装
+DEV_INIT_DIR=$(dirname "$(readlink -f .agents/skills/dev-init/SKILL.md 2>/dev/null)")
 test -f "$DEV_INIT_DIR/AGENTS-example.md"
 cp "$DEV_INIT_DIR/AGENTS-example.md" AGENTS.md
 ```
