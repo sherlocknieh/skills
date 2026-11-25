@@ -17,7 +17,7 @@ description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目�
 
 全局 `AGENTS.md`（原 `agents-init`）不在这里安装：它由常驻全局技能 `agent-init` 负责。`agent-init` 随 `global` 场景链入 `~/.agents/skills/`，agent 会自动发现并触发。本技能只处理项目级 `AGENTS.md`。
 
-分工：显式初始化、切换场景、重建链接用 `project-init`；会话中按需识别工作类型并提议加载用 `skill-router`。本技能只在用户明确要初始化时执行，不代做按需探测。
+分工：显式初始化、切换场景、重建链接用 `project-init`；会话中按需识别工作类型并提议加载用 `skill-init`。本技能只在用户明确要初始化时执行，不代做按需探测。
 
 ## 何时执行
 
@@ -30,7 +30,7 @@ description: 把 global 场景常驻技能链到 ~/.agents/skills/，按项目�
 - 项目里 `.agents/skills/` 缺失、链接失效或指向旧路径
 - 用户在对话中（非开头）只说「提交」时，按下一节处理
 
-会话中首次出现领域任务的按需加载提议由 `skill-router` 负责，不要用本技能代做。
+会话中首次出现领域任务的按需加载提议由 `skill-init` 负责，不要用本技能代做。
 
 已经能正常工作时不要执行，也不必每次会话都检查。本技能是幂等的，但没必要每次会话都跑。
 
@@ -86,7 +86,7 @@ PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 
 只选 `global` 场景且没给 `--dest` 时，脚本默认写到 `~/.agents/skills`。装完 `readlink -f ~/.agents/skills/<name>` 应指向 `$REPO_ROOT/global-skills/<name>`。
 
-若发现全局 `AGENTS.md` 缺失或失效：停止本技能，让用户先执行 `agent-init` 技能（或手动运行 `~/.agents/skills/agent-init/install-agents.sh --agent <当前 Agent>`），然后再回来装技能。不要在本技能里代装。
+若发现全局 `AGENTS.md` 缺失或失效：停止本技能，让用户先执行 `agent-init` 技能（它会弹窗让用户选要装或卸的 Agent），或手动运行 `~/.agents/skills/agent-init/install-agents.sh --agent <Agent 名>`，然后再回来装技能。不要在本技能里代装。
 
 ## 4. 确认目标项目
 
@@ -106,7 +106,7 @@ PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 | `system` 系统管理 | Linux 桌面与硬件排障：Fedora、GNOME、蓝牙、输入法、远程桌面，以及 OpenCode 自身配置 |
 | `learn` 学习 | 以理解概念、跟学一项技能为主：系统讲解、资料调研、要求重讲、追问式压测 |
 | `create` 内容创作 | 视频、PDF、文档等产出型工作：视频制作、PDF 书签整理、资料调研、写作规范 |
-| `other` 其他 | 以上都不贴切时选。不装默认技能（`find-skills` 已在全局），按名补装项目需要的技能，如 `other diagnosing-bugs` |
+| `other` 其他 | 以上都不贴切时选，不装默认技能；按名补装项目需要的技能，如 `other diagnosing-bugs` |
 
 需要看每个场景包含哪些技能时，运行（命令自带源路径解析，不依赖上一条命令的变量）：
 
@@ -115,7 +115,7 @@ PROJECT_INIT=$(dirname "$(readlink -f ~/.agents/skills/project-init/SKILL.md)")
 "$PROJECT_INIT/link-skills.sh" --list
 ```
 
-用户拿不准时，按项目实际内容给一项推荐，说明理由，再让用户确认。用户选择「其他」时，不要往项目里装 `find-skills`（它已随 `global` 常驻全局），只问要补哪些具体技能；没给技能名就说明 other 不装默认技能，让用户补。
+用户拿不准时，按项目实际内容给一项推荐，说明理由，再让用户确认。用户选择「其他」时，只问要补哪些具体技能；没给技能名就说明 other 不装默认技能，让用户补。
 
 选中 `dev` 或 `system` 时，安装后会在第 7 节接续执行 `dev-init` / `system-init`；若本次目标包含 OpenCode 配置，再按需执行 `opencode-init`。用户不需要时当场确认跳过。
 
@@ -204,7 +204,7 @@ fi
 - 已有 `AGENTS.md` 混入项目细节时，本步不改正文；选中 `dev` 时第 8 步执行 `dev-init`，按「细节外移」搬到 `docs/`，并逐节对照模板补齐 `开发流程`、`调试约定` 等缺失章节。
 - 「自动提交」小节是项目的固定约定，不是可选章节：骨架与 dev 模板都自带；已有 `AGENTS.md` 缺它时追加到末尾，已有则跳过（`grep -q '^## 自动提交'`）。
 - `AGENTS.md` 是符号链接时，追加到它指向的文件，不要替换链接本身。
-- Copilot 会读 `AGENTS.md`，但不保证最先加载；`.github/copilot-instructions.md` 保证最先注入，所以用相对符号链接指向它，不复制正文。
+- `.github/copilot-instructions.md` 是 Copilot 项目指令的优先注入入口；用相对符号链接让它指向 `AGENTS.md`，避免重复维护指令正文。用户问起这个文件是什么时，再说明它是 Copilot 用来优先读取项目指令的入口，以及链接到 `AGENTS.md` 的作用。
 - dev 场景的链接由 `dev-init` 建；若用户跳过 `dev-init`，本步结束时 `AGENTS.md` 与链接都未创建，报告里要写明。
 - 已有指向 `AGENTS.md` 的链接：跳过。
 - 已有实体文件：内容与 `AGENTS.md` 相同就替换成链接；不同则先 `cp` 到 `.github/copilot-instructions.md.bak.<日期>` 再替换，并在报告里写出备份路径。
