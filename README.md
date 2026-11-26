@@ -7,32 +7,26 @@
 
 | Agent | 路径 |
 | --- | --- |
+| Pi | `~/.pi/agent/AGENTS.md` |
 | Copilot | `~/.copilot/copilot-instructions.md` |
 | OpenCode | `~/.config/opencode/AGENTS.md` |
-| Pi | `~/.pi/agent/AGENTS.md` |
-| dsh (DeepSeek Harness) | `~/.dsh/AGENTS.md` |
+| DeepSeek Harness | `~/.dsh/AGENTS.md` |
 | Claude Code | `~/.claude/CLAUDE.md` |
 | Codex | `~/.codex/AGENTS.md` |
 | ... |... |
 
-我打算让所有 Agent 都加载同一份全局提示词，方便统一管理和更新。
+我打算让所有 Agent 都加载同一份全局提示词， 以本仓库下的 `AGENTS.md` 为唯一源文件，按需链接到各 Agent 的默认路径下：
 
-以本仓库下的 `AGENTS.md` 为唯一源文件，按需链接到各 Agent 的默认路径下。
+- 以 OpenCode 为例：
+```bash
+ln -s <仓库所在目录>/skills/AGENTS.md ~/.config/opencode/AGENTS.md
+```
 
-### 手动安装
+> [!TIP] 自动安装
+> - 用任意 Agent 打开本仓库，让它读取并执行 `agents-init` 技能，即可交互式地完成安装。
 
-- 把本仓库克隆到固定的惯用目录下；
-- 把 `AGENTS.md` 链接到各 Agent 支持的路径下；
-以 OpenCode 为例：
-  ```bash
-  ln -s <仓库所在目录>/skills/AGENTS.md ~/.config/opencode/AGENTS.md
-  ```
-
-> [!INFO] 自动安装
-> - 用任意 Agent 打开本仓库，让它读取并执行 `agents-init` 技能自动安装。
-
-> [!WARNING]
-> 创建符号链接后，移动或重命名使仓库路径发生变化会使链接失效。变化后需重新安装。
+> [!WARNING] 移动仓库位置
+> - 创建符号链接后，移动或重命名仓库导致路径变化时，符号链接会失效。变化后需重新安装一次。
 
 
 ## 2. 全局技能: [global-skills](./global-skills/)
@@ -51,28 +45,28 @@ ln -sfn <仓库所在目录>/skills/global-skills/ ~/.agents/skills/
 
 各大主流 Agent 都支持 `~/.agents/skills` 技能目录。
 
-> [!INFO] 自动安装
+> [!TIP] 自动安装
 > - 用任意 Agent 打开本仓库，让它读取并执行 `skills-init` 技能进行自动安装。
 
 
 ## 三、项目技能 & 项目提示词
 
-| 目录 | 用途 |
+| 类型 | 路径 |
 | --- | --- |
-| [`dev-skills/`](./dev-skills/) | 项目开发技能 |
-| [`user-skills/`](./user-skills/) | 其他个人技能 |
-| [`system-skills/`](./system-skills/) | 操作系统管理技能 |
-| [`learning-skills/`](./learning-skills/) | 知识学习技能 |
+| 知识学习技能 | [`learning-skills`](./learning-skills/)
+| 操作系统管理技能 | [`system-skills`](./system-skills/) | 
+| 项目开发技能 | [`dev-skills`](./dev-skills/) |
+| 其他个人技能 | [`user-skills`](./user-skills/) |
 
-| 内容 | 安装路径 |
-| --- | --- |
-| 项目技能 | `<project>/.agents/skills` |
-| 项目提示词 | `<project>/AGENTS.md` |
+- 项目技能 `<project>/.agents/skills/`
+- 项目提示词 `<project>/AGENTS.md`
 
-### 安装步骤
+> [!NOTE] VSCode 特例
+> - 各主流 Agent 都支持读取 `<project>/AGENTS.md` 作为项目提示词；
+> - 但 VSCode Copilot 对该文件的加载会有延迟，会出现先读代码后读规则的情况；
+> - 要保证提示词被注入会话顶部，需把 `<project>/AGENTS.md` 链接到 `<project>/.github/copilot-instructions.md`，Copilot 对它的加载优先级更高；
 
-全局技能安装后:
-
-- 在任意项目下使用 `project-init` 技能完成项目相关技能与提示词的安装。
-
-- 在任意目录下打开会话直接开始工作, `skills-init` 技能会智能识别你的需求, 并提示你是否加载相关技能。
+> [!TIP] 安装步骤
+> 全局技能安装后:
+> - 在任意项目下使用 `project-init` 技能完成项目相关技能与提示词的安装。
+> - 在任意目录下打开会话直接开始工作, `skills-init` 技能会智能识别你的需求, 并提示你是否加载相关技能。
