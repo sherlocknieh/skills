@@ -64,7 +64,8 @@ ln -sfn <仓库所在目录>/skills/global-skills/ ~/.agents/skills/
 > [!NOTE] VSCode 特例
 > - 各主流 Agent 都支持读取 `<project>/AGENTS.md` 作为项目提示词；
 > - 但 VSCode Copilot 对该文件的加载会有延迟，会出现先读代码后读规则的情况；
-> - 要保证提示词被注入会话顶部，需把 `<project>/AGENTS.md` 链接到 `<project>/.github/copilot-instructions.md`，Copilot 对它的加载优先级更高；
+> - 要保证提示词被注入会话顶部，需把 `<project>/AGENTS.md` 软链接到 `<project>/.github/copilot-instructions.md`，Copilot 对它的加载优先级更高；反过来链接也可以；
+> - 我选择以 `<project>/AGENTS.md` 为源文件， `<project>/.github/copilot-instructions.md` 为符号链接。
 
 > [!TIP] 安装步骤
 > 全局技能安装后:
